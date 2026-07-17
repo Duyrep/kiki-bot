@@ -1,0 +1,51 @@
+{
+	"$schema": "https://swc.rs/schema.json",
+	"jsc": {
+		"parser": {
+			"syntax": "typescript",
+			"tsx": false,
+			"decorators": true,
+			"dynamicImport": true
+		},
+		"minify": {
+			"compress": {
+				"arguments": true,
+				"dead_code": true,
+				"toplevel": true,
+				"unused": true,
+				"passes": 3,
+				"unsafe": true,
+				"unsafe_math": true,
+				"hoist_props": true,
+				"pure_getters": true,
+				"inline": 3
+			},
+			"mangle": {
+				"toplevel": true,
+				"keep_classnames": false,
+				"keep_fnames": false
+			},
+			"format": {
+				"comments": false
+			}
+		},
+		"target": "es2022",
+		"loose": true,
+		"externalHelpers": true,
+		"keepClassNames": false,
+		"preserveAllComments": false,
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"module": {
+		"type": "commonjs",
+		"strict": true,
+		"strictMode": true,
+		"lazy": false,
+		"noInterop": false
+	},
+	"minify": true,
+	"sourceMaps": false
+}

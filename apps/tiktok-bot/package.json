@@ -1,0 +1,17 @@
+{
+	"name": "@rep/tiktok-bot",
+	"version": "1.0.0",
+	"scripts": {
+		"prebuild": "rimraf dist",
+		"build": "swc src -d dist --strip-leading-paths",
+		"watch": "swc src -d dist -w",
+		"dev": "pnpm build && node --experimental-require-module --env-file=.env.development dist/index.js",
+		"start": "node --experimental-require-module --env-file=.env.development dist/index.js"
+	},
+	"dependencies": {
+		"tiktok-live-connector": "^2.4.0"
+	},
+	"devDependencies": {
+		"@rep/typescript-config": "workspace:^"
+	}
+}

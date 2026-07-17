@@ -1,0 +1,10 @@
+{
+	"extends": "@rep/typescript-config/base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./dist",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	}
+}

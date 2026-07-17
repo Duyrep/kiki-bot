@@ -1,0 +1,33 @@
+{
+	"name": "kiki-bot",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"start": "turbo run start",
+		"build": "turbo run build",
+		"dev": "turbo run dev",
+		"dev:tiktok-bot": "turbo run dev --filter=@rep/tiktok-bot",
+		"dev:playlist": "turbo run dev --filter=@rep/playlist",
+		"dev:server": "turbo run dev --filter=@rep/server",
+		"lint": "pnpx @biomejs/biome lint --write",
+		"format": "pnpx @biomejs/biome format --write",
+		"check-types": "pnpx @biomejs/biome check --write",
+		"prepare": "turbo build --filter=\"./packages/*\""
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.1",
+		"@swc/cli": "^0.8.1",
+		"@swc/core": "^1.15.43",
+		"@types/node": "^26.0.1",
+		"rimraf": "^6.1.3",
+		"turbo": "^2.10.0",
+		"typescript": "5.9.2"
+	},
+	"packageManager": "pnpm@9.0.0",
+	"engines": {
+		"node": ">=18"
+	},
+	"dependencies": {
+		"@swc/helpers": "^0.5.23"
+	}
+}

@@ -1,0 +1,13 @@
+{
+	"extends": "@rep/typescript-config/base.json",
+	"compilerOptions": {
+		"types": ["jest", "node"],
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"rootDir": "./",
+		"outDir": "./dist",
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	}
+}

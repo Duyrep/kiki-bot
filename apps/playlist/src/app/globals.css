@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "tailwindcss-animated";
+
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
