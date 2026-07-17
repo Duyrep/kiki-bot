@@ -54,7 +54,7 @@ export default function Home() {
 	}, [socket]);
 
 	return (
-		<div className="flex gap-2 w-full overflow-auto py-10">
+		<div className="bg-transparent flex gap-2 w-full overflow-auto py-10 scrollbar-track-transparent">
 			{queue
 				.slice(
 					...(() => {
