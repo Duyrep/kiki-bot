@@ -3,11 +3,19 @@ import { connection } from "@/index";
 import { type SearchResponse } from "@/interfaces";
 
 export default class Search extends Command implements Command {
+	private static queue: Promise<void> = Promise.resolve();
+
 	constructor() {
 		super("ki!p");
 	}
 
-	async run(...args: string[]) {
+	run(...args: string[]): void {
+		Search.queue = Search.queue
+			.then(() => this.executeSearch(...args))
+			.catch((err) => console.error("Lỗi trong hàng đợi Search:", err));
+	}
+
+	private async executeSearch(...args: string[]): Promise<void> {
 		const username = args.at(0);
 		const query = args.slice(1).join(" ");
 
@@ -65,7 +73,7 @@ export default class Search extends Command implements Command {
 		}
 	}
 
-	getFirstSongOrVideoInfo(data: SearchResponse):
+	private getFirstSongOrVideoInfo(data: SearchResponse):
 		| {
 				videoId: string;
 				songAndArtist: string;

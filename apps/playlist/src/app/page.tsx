@@ -53,41 +53,22 @@ export default function Home() {
 		});
 	}, [socket]);
 
-	const upcomingQueue = queue.slice(
-		...(() => {
-			const start = queue.findIndex((v) => v.videoId === videoPlaying);
-			return [start + 1, start + 11];
-		})(),
-	);
+	// const upcomingQueue = queue.slice(
+	// 	...(() => {
+	// 		const start = queue.findIndex((v) => v.videoId === videoPlaying);
+	// 		return [start + 1, start + 11];
+	// 	})(),
+	// );
+
+	const upcomingQueue = queue;
 
 	return (
-		<div className="bg-transparent flex items-center gap-3 w-full overflow-x-auto py-4 px-2 scrollbar-none select-none">
-			<style>{`
-        @keyframes marquee {
-          0% { transform: translate3d(10%, 0, 0); }
-          100% { transform: translate3d(-100%, 0, 0); }
-        }
-        .marquee-text {
-          display: inline-block;
-          white-space: nowrap;
-          padding-left: 100%;
-          animation: marquee 12s linear infinite;
-        }
-        .scrollbar-none::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-none {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
-
+		<div className="bg-transparent flex flex-wrap items-center gap-3 w-full h-full overflow-auto py-4 px-2 scrollbar-none select-none">
 			{upcomingQueue.map((song, index) => {
 				const thumbnailUrl = `https://img.youtube.com/vi/${song?.videoId}/mqdefault.jpg`;
-
 				return (
 					<div
-						key={song.videoId}
+						key={song.videoId + crypto.randomUUID()}
 						className={twMerge(
 							"relative flex items-center gap-2 w-[210px] min-w-[210px] p-2 rounded-md overflow-hidden",
 							"border border-white/10 backdrop-blur-md shadow-lg transition-all duration-500 ease-out",
@@ -96,22 +77,20 @@ export default function Home() {
 								? "bg-black/50 border-purple-500/40 shadow-purple-500/5"
 								: "bg-black/70 border-white/10",
 						)}
-						style={{
-							animationDelay: `${index * 60}ms`,
-							animationFillMode: "both",
-						}}
 					>
-						{/* Background Blur nhẹ phía sau */}
-						<div
-							className="absolute inset-0 -z-10 opacity-20 scale-110 blur-lg pointer-events-none"
-							style={{
-								backgroundImage: `url(${thumbnailUrl})`,
-								backgroundSize: "cover",
-								backgroundPosition: "center",
-							}}
-						/>
+						{song.videoId !== videoPlaying ? (
+							<div
+								className="absolute inset-0 -z-10 opacity-20 scale-110 blur-lg pointer-events-none"
+								style={{
+									backgroundImage: `url(${thumbnailUrl})`,
+									backgroundSize: "cover",
+									backgroundPosition: "center",
+								}}
+							/>
+						) : (
+							<div className="absolute inset-0 -z-10 opacity-90 scale-110 blur-lg pointer-events-none bg-red-500" />
+						)}
 
-						{/* Thumbnail nhỏ xinh (36x36px) */}
 						<div className="relative w-9 h-9 rounded-md overflow-hidden flex-shrink-0 border border-white/10">
 							<img
 								src={thumbnailUrl}
