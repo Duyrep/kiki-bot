@@ -193,30 +193,28 @@ export class MusicService {
 			console.log(`Found added song in updatedQueue at index: ${fromIndex}`);
 
 			if (fromIndex !== -1) {
-				const lastViewerVideoId = this.viewerOrders.at(-1)?.videoId;
-				let toIndex = updatedQueue.findIndex(
-					(v) => v.videoId === lastViewerVideoId,
+				const latestCurrentSong = await this.getCurrentSong();
+				const currentSongIdxInUpdated = updatedQueue.findIndex(
+					(v) => v.videoId === latestCurrentSong.videoId,
 				);
+
+				const remainingQueue = updatedQueue.slice(
+					currentSongIdxInUpdated !== -1 ? currentSongIdxInUpdated : 0,
+				);
+
+				const viewerSongsCount = remainingQueue.filter(
+					(v) => v.tag === "viewer" && v.videoId !== body.videoId,
+				).length;
+
+				const baseIndex =
+					currentSongIdxInUpdated !== -1 ? currentSongIdxInUpdated : 0;
+				const targetIndex = baseIndex + viewerSongsCount + 1;
+
 				console.log(
-					`Last viewer song ID: ${lastViewerVideoId}, Found at index: ${toIndex}`,
+					`[FIX] Current Song Index: ${baseIndex}, Viewer songs ahead: ${viewerSongsCount}, Target Index: ${targetIndex}`,
 				);
 
-				if (toIndex === -1) {
-					const latestCurrentSong = await this.getCurrentSong();
-					toIndex = updatedQueue.findIndex(
-						(v) => v.videoId === latestCurrentSong.videoId,
-					);
-					console.log(
-						`Fallback to current song ID: ${latestCurrentSong.videoId}, Found at index: ${toIndex}`,
-					);
-				}
-
-				const targetIndex = toIndex !== -1 ? toIndex + 1 : 0;
-				console.log(
-					`Moving song from index ${fromIndex} to index ${targetIndex}`,
-				);
-
-				const patchRes = await fetch(
+				await fetch(
 					`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
 					{
 						method: "PATCH",
@@ -228,7 +226,6 @@ export class MusicService {
 						}),
 					},
 				);
-				console.log(`PATCH Move Status: ${patchRes.status}`);
 			} else {
 				console.log(
 					"Error: Could not find the newly added song in queue after max attempts.",
