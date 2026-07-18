@@ -35,10 +35,8 @@ async function startConnection() {
 	}
 }
 
-// Bắt đầu chạy kết nối
 startConnection();
 
-// --- Xử lý sự kiện CHAT ---
 connection.on(WebcastEvent.CHAT, async (data) => {
 	console.log(`${data.user?.displayId}: ${data.content}`);
 

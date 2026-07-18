@@ -81,6 +81,7 @@ export class MusicService {
 	}
 
 	async addToTract(body: AddToQueueDto) {
+		console.log("=== START ADD TO TRACK ===", body);
 		const delay = (ms: number) =>
 			new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -90,13 +91,40 @@ export class MusicService {
 			(v) => v.videoId === currentSong.videoId,
 		);
 
-		if (queue.slice(currentSongIndex).some((v) => v.videoId === body.videoId))
-			return;
+		console.log(
+			`Queue length: ${queue.length}, Current Song ID: ${currentSong.videoId}, Current Song Index: ${currentSongIndex}`,
+		);
 
-		if (queue.some((v) => v.videoId === body.videoId)) {
+		const subQueue = queue.slice(currentSongIndex, currentSongIndex + 11);
+		const isDuplicateInSub = subQueue.some((v) => v.videoId === body.videoId);
+
+		console.log(
+			`Checking duplicate in next 11 songs: ${isDuplicateInSub ? "FOUND" : "NOT FOUND"}`,
+		);
+
+		if (isDuplicateInSub) {
+			console.log(
+				`[BLOCKED] Video ${body.videoId} already exists in the next 11 songs. Aborting.`,
+			);
+			return;
+		}
+
+		const isDuplicateInWholeQueue = queue.some(
+			(v) => v.videoId === body.videoId,
+		);
+		console.log(
+			`Checking duplicate in whole queue: ${isDuplicateInWholeQueue ? "FOUND" : "NOT FOUND"}`,
+		);
+
+		if (isDuplicateInWholeQueue) {
 			const index = queue
 				.slice(currentSongIndex)
 				.findIndex((v) => v.videoId === body.videoId);
+
+			console.log(
+				`Deleting duplicate video ${body.videoId} at offset index ${index}`,
+			);
+
 			await fetch(
 				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${index}`,
 				{
@@ -108,8 +136,11 @@ export class MusicService {
 			);
 		}
 
+		console.log(`Current viewerOrders length: ${this.viewerOrders.length}`);
+
 		if (this.viewerOrders.length === 0) {
-			await fetch(
+			console.log("Executing: INSERT_AFTER_CURRENT_VIDEO");
+			const res = await fetch(
 				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue`,
 				{
 					method: "POST",
@@ -122,8 +153,10 @@ export class MusicService {
 					}),
 				},
 			);
+			console.log(`POST Status (Viewer length 0): ${res.status}`);
 		} else {
-			await fetch(
+			console.log("Executing: INSERT_AFTER_END_OF_VIEWERS_VIDEO");
+			const res = await fetch(
 				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue`,
 				{
 					method: "POST",
@@ -135,6 +168,7 @@ export class MusicService {
 					}),
 				},
 			);
+			console.log(`POST Status (Viewer length > 0): ${res.status}`);
 
 			let updatedQueue = await this.getQueue();
 			let attempts = 0;
@@ -145,6 +179,9 @@ export class MusicService {
 				!updatedQueue.some((v) => v.videoId === body.videoId) &&
 				attempts < maxAttempts
 			) {
+				console.log(
+					`Waiting for song to appear in queue... Attempt: ${attempts + 1}`,
+				);
 				await delay(delayMs);
 				updatedQueue = await this.getQueue();
 				attempts++;
@@ -153,11 +190,15 @@ export class MusicService {
 			const fromIndex = updatedQueue.findIndex(
 				(v) => v.videoId === body.videoId,
 			);
+			console.log(`Found added song in updatedQueue at index: ${fromIndex}`);
 
 			if (fromIndex !== -1) {
 				const lastViewerVideoId = this.viewerOrders.at(-1)?.videoId;
 				let toIndex = updatedQueue.findIndex(
 					(v) => v.videoId === lastViewerVideoId,
+				);
+				console.log(
+					`Last viewer song ID: ${lastViewerVideoId}, Found at index: ${toIndex}`,
 				);
 
 				if (toIndex === -1) {
@@ -165,11 +206,17 @@ export class MusicService {
 					toIndex = updatedQueue.findIndex(
 						(v) => v.videoId === latestCurrentSong.videoId,
 					);
+					console.log(
+						`Fallback to current song ID: ${latestCurrentSong.videoId}, Found at index: ${toIndex}`,
+					);
 				}
 
 				const targetIndex = toIndex !== -1 ? toIndex + 1 : 0;
+				console.log(
+					`Moving song from index ${fromIndex} to index ${targetIndex}`,
+				);
 
-				await fetch(
+				const patchRes = await fetch(
 					`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
 					{
 						method: "PATCH",
@@ -181,17 +228,25 @@ export class MusicService {
 						}),
 					},
 				);
+				console.log(`PATCH Move Status: ${patchRes.status}`);
+			} else {
+				console.log(
+					"Error: Could not find the newly added song in queue after max attempts.",
+				);
 			}
-			// --- KẾT THÚC GIẢI PHÁP 1 ---
 		}
 
-		if (body.tag === "viewer")
+		if (body.tag === "viewer") {
 			this.viewerOrders.push({
 				videoId: body.videoId,
 				viewerName: body.viewerName,
 			});
+			console.log(
+				`Added to viewerOrders array. New length: ${this.viewerOrders.length}`,
+			);
+		}
 
-		// diciembre_yaa
+		console.log("=== END ADD TO TRACK ===");
 	}
 
 	@Interval(1000)
