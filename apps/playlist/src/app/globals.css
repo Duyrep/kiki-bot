@@ -1,6 +1,15 @@
 @import "tailwindcss";
 @import "tailwindcss-animated";
 
+:root {
+	--bg-item-default: #e5e5e5; /* tương ứng bg-neutral-200 */
+	--bg-item-playing: #bbf7d0; /* tương ứng bg-green-200 */
+	--bg-item-viewer: #fecaca; /* tương ứng bg-red-200 */
+
+	--song-title-text-color: #000000;
+	--song-author-text-color: #000000;
+}
+
 body {
 	font-family: Arial, Helvetica, sans-serif;
 }
