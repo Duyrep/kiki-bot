@@ -56,6 +56,6 @@ connection.on(WebcastEvent.CHAT, async (data) => {
 	const command = commands.find((cmd) => cmd.name === chatCommand);
 
 	if (command) {
-		await command.run(...[displayId, ...args]);
+		command.run(...[displayId, ...args]);
 	}
 });

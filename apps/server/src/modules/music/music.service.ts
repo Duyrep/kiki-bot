@@ -117,34 +117,21 @@ export class MusicService {
 			);
 		}
 
-		if (this.viewerOrders.length === 0) {
-			const res = await fetch(
-				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						videoId: body.videoId,
-						insertPosition: "INSERT_AFTER_CURRENT_VIDEO",
-					}),
+		await fetch(
+			`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue`,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
 				},
-			);
-		} else {
-			const res = await fetch(
-				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						videoId: body.videoId,
-					}),
-				},
-			);
+				body: JSON.stringify({
+					videoId: body.videoId,
+					insertPosition: "INSERT_AFTER_CURRENT_VIDEO",
+				}),
+			},
+		);
 
+		if (this.viewerOrders.length > 0) {
 			let updatedQueue = await this.getQueue();
 			let attempts = 0;
 			const maxAttempts = 10;
@@ -165,11 +152,13 @@ export class MusicService {
 			const fromIndex = updatedQueue.findIndex(
 				(v) => v.videoId === body.videoId,
 			);
+
 			if (fromIndex !== -1) {
 				const lastViewerVideoId = this.viewerOrders.at(-1)?.videoId;
 				let toIndex = updatedQueue.findIndex(
 					(v) => v.videoId === lastViewerVideoId,
 				);
+
 				if (toIndex === -1) {
 					const latestCurrentSong = await this.getCurrentSong();
 					toIndex = updatedQueue.findIndex(
@@ -177,19 +166,29 @@ export class MusicService {
 					);
 				}
 
-				const targetIndex = toIndex !== -1 ? toIndex + 1 : 0;
-				const patchRes = await fetch(
-					`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
-					{
-						method: "PATCH",
-						headers: {
-							"Content-Type": "application/json",
+				let targetIndex = toIndex !== -1 ? toIndex + 1 : 0;
+
+				if (fromIndex < targetIndex) {
+					targetIndex--;
+				}
+
+				if (fromIndex !== targetIndex) {
+					console.log(
+						`Moving song from index ${fromIndex} to target index ${targetIndex}`,
+					);
+					await fetch(
+						`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
+						{
+							method: "PATCH",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({
+								toIndex: targetIndex,
+							}),
 						},
-						body: JSON.stringify({
-							toIndex: targetIndex,
-						}),
-					},
-				);
+					);
+				}
 			} else {
 				console.log(
 					"Error: Could not find the newly added song in queue after max attempts.",
