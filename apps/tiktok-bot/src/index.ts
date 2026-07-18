@@ -1,7 +1,16 @@
 import { TikTokLiveConnection, WebcastEvent } from "tiktok-live-connector";
-import { commands } from "./commands";
+import { commands } from "@/commands";
+import { logger } from "@/utils";
 
 const tiktokUsername = process.env.TIKTOK_USERNAME;
+
+if (!tiktokUsername) {
+	logger.error(
+		{ context: "TikTokConnection" },
+		"Biến môi trường TIKTOK_USERNAME bị thiếu!",
+	);
+	process.exit(1);
+}
 
 export const connection = new TikTokLiveConnection(tiktokUsername, {});
 
@@ -11,26 +20,39 @@ let retryCount = 0;
 
 async function startConnection() {
 	try {
+		if (retryCount === 0) {
+			logger.info(
+				{ context: "TikTokConnection" },
+				`Đang kết nối với TikTok live: ${tiktokUsername}...`,
+			);
+		}
+
 		const state = await connection.connect();
-		console.info(`Connected to roomId ${state.roomId}`);
+		logger.info(
+			{ context: "TikTokConnection" },
+			`Đã kết nối thành công với roomId ${state.roomId}`,
+		);
 		retryCount = 0;
 	} catch (err) {
 		retryCount++;
-		console.error(
-			`Unable to connect (Attempt: ${retryCount}/${MAX_RETRIES}):`,
-			err,
+		logger.error(
+			{
+				context: "TikTokConnection",
+				error: err instanceof Error ? err.message : String(err),
+			},
+			`Kết nối thất bại (Số lần thử lại: ${retryCount}/${MAX_RETRIES})`,
 		);
 
 		if (retryCount >= MAX_RETRIES) {
-			console.error("The retry limit has been reached.");
+			logger.fatal(
+				{ context: "TikTokConnection" },
+				"Đã đạt số lần thử kết nối tối đa. Đang thoát tiến trình.",
+			);
 			process.exit(1);
 		}
 
-		console.info(
-			`Will try to reconnect after ${RETRY_DELAY / 1000} seconds...`,
-		);
-
 		await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+		logger.info({ context: "TikTokConnection" }, `Đang kết nối lại...`);
 		await startConnection();
 	}
 }
@@ -38,24 +60,42 @@ async function startConnection() {
 startConnection();
 
 connection.on(WebcastEvent.CHAT, async (data) => {
-	console.log(`${data.user?.displayId}: ${data.content}`);
-
 	const content = data?.content?.trim();
 	const displayId = data.user?.displayId;
 	if (!content || !displayId) return;
 
-	const prefix = process.env.PREFIX || "";
+	const args = content.split(/ +/);
+	const rawCommand = args.shift();
+	if (!rawCommand) return;
 
-	if (prefix && !content.startsWith(prefix)) return;
+	const regexHopLe = /^@+[a-zA-Z0-9_]/;
+	const isValidCommand =
+		commands.some((cmd) => cmd.name === rawCommand.toLowerCase()) ||
+		regexHopLe.test(rawCommand);
 
-	const args = content.slice(prefix.length).trim().split(/ +/);
+	if (!isValidCommand) return;
 
-	const chatCommand = args.shift()?.toLowerCase();
-	if (!chatCommand) return;
-
+	const chatCommand = rawCommand.replace(/^@+/, "").toLowerCase();
 	const command = commands.find((cmd) => cmd.name === chatCommand);
 
 	if (command) {
-		command.run(...[displayId, ...args]);
+		logger.info(
+			{ context: "TikTokCommand" },
+			`Đang thực thi lệnh '${chatCommand}' từ người dùng @${displayId}`,
+		);
+
+		try {
+			await command.run(...[displayId, ...args]);
+		} catch (cmdError) {
+			logger.error(
+				{
+					context: "TikTokCommand",
+					user: displayId,
+					command: chatCommand,
+					error: cmdError,
+				},
+				`Lỗi khi thực thi lệnh '${chatCommand}'`,
+			);
+		}
 	}
 });

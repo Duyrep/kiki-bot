@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
@@ -10,9 +10,15 @@ import type { AddToQueueDto } from "./dto/addToQueue.dto";
 
 @Injectable()
 export class MusicService {
-	private readonly viewerOrders: { videoId: string; viewerName: string }[] = [];
+	private readonly logger = new Logger(MusicService.name);
+
+	private viewerOrders: { videoId: string; viewerName: string }[] = [];
 	private previousQueueLength: number = 0;
 	private previousQueueHash: string = "";
+
+	private isProcessingQueue = false;
+
+	private requestHistory: { viewerName: string; timestamp: number }[] = [];
 
 	constructor(
 		private readonly eventEmitter: EventEmitter2,
@@ -81,70 +87,113 @@ export class MusicService {
 	}
 
 	async addToTract(body: AddToQueueDto) {
-		const delay = (ms: number) =>
-			new Promise((resolve) => setTimeout(resolve, ms));
+		while (this.isProcessingQueue) {
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		}
+		this.isProcessingQueue = true;
 
-		const queue = await this.getQueue();
-		const currentSong = await this.getCurrentSong();
-		const currentSongIndex = queue.findIndex(
-			(v) => v.videoId === currentSong.videoId,
-		);
+		try {
+			const delay = (ms: number) =>
+				new Promise((resolve) => setTimeout(resolve, ms));
 
-		const isDuplicateInWholeQueue = queue.some(
-			(v) => v.videoId === body.videoId,
-		);
-		console.log(
-			`Checking duplicate in whole queue: ${isDuplicateInWholeQueue ? "FOUND" : "NOT FOUND"}`,
-		);
+			const queue = await this.getQueue();
+			const currentSong = await this.getCurrentSong();
 
-		if (isDuplicateInWholeQueue) {
-			const index = queue
-				.slice(currentSongIndex)
-				.findIndex((v) => v.videoId === body.videoId);
-
-			console.log(
-				`Deleting duplicate video ${body.videoId} at offset index ${index}`,
+			const currentSongIndex = queue.findIndex(
+				(v) => v.videoId === currentSong.videoId,
 			);
+			const rangeStart = currentSongIndex + 1;
+			const rangeEnd = currentSongIndex + 11;
+
+			const safeZoneTracks = queue.slice(rangeStart, rangeEnd);
+			const duplicateInSafeZone = safeZoneTracks.find(
+				(v) => v.videoId === body.videoId,
+			);
+
+			if (duplicateInSafeZone && duplicateInSafeZone.tag === "viewer") {
+				return;
+			}
+
+			if (body.viewerName) {
+				const now = Date.now();
+				const timeWindow = 45 * 1000;
+				const maxRequests = 2;
+
+				this.requestHistory = this.requestHistory.filter(
+					(req) => now - req.timestamp < timeWindow,
+				);
+
+				const viewerRequestsInWindow = this.requestHistory.filter(
+					(req) => req.viewerName === body.viewerName,
+				);
+
+				if (viewerRequestsInWindow.length >= maxRequests) {
+					throw new BadRequestException("TOO MANY REQUEST");
+				}
+
+				this.requestHistory.push({
+					viewerName: body.viewerName,
+					timestamp: now,
+				});
+			}
+
+			if (duplicateInSafeZone) {
+				const indexInQueue = queue.findIndex(
+					(v, idx) =>
+						idx >= rangeStart && idx < rangeEnd && v.videoId === body.videoId,
+				);
+				if (indexInQueue !== -1) {
+					await fetch(
+						`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${indexInQueue}`,
+						{
+							method: "DELETE",
+							headers: { "Content-Type": "application/json" },
+						},
+					);
+				}
+			} else {
+				const duplicateOutsideIndex = queue.findIndex(
+					(v, idx) =>
+						v.videoId === body.videoId && (idx < rangeStart || idx >= rangeEnd),
+				);
+				if (duplicateOutsideIndex !== -1) {
+					await fetch(
+						`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${duplicateOutsideIndex}`,
+						{
+							method: "DELETE",
+							headers: { "Content-Type": "application/json" },
+						},
+					);
+				}
+			}
 
 			await fetch(
-				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${index}`,
+				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue`,
 				{
-					method: "DELETE",
-					headers: {
-						"Content-Type": "application/json",
-					},
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						videoId: body.videoId,
+						insertPosition: "INSERT_AFTER_CURRENT_VIDEO",
+					}),
 				},
 			);
-		}
 
-		await fetch(
-			`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue`,
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
+			if (body.viewerName) {
+				this.viewerOrders.push({
 					videoId: body.videoId,
-					insertPosition: "INSERT_AFTER_CURRENT_VIDEO",
-				}),
-			},
-		);
+					viewerName: body.viewerName,
+				});
+				if (this.viewerOrders.length > 100) this.viewerOrders.shift();
+			}
 
-		if (this.viewerOrders.length > 0) {
 			let updatedQueue = await this.getQueue();
 			let attempts = 0;
-			const maxAttempts = 10;
-			const delayMs = 300;
-
 			while (
 				!updatedQueue.some((v) => v.videoId === body.videoId) &&
-				attempts < maxAttempts
+				attempts < 10
 			) {
-				console.log(
-					`Waiting for song to appear in queue... Attempt: ${attempts + 1}`,
-				);
-				await delay(delayMs);
+				await delay(3000);
 				updatedQueue = await this.getQueue();
 				attempts++;
 			}
@@ -152,12 +201,21 @@ export class MusicService {
 			const fromIndex = updatedQueue.findIndex(
 				(v) => v.videoId === body.videoId,
 			);
-
 			if (fromIndex !== -1) {
-				const lastViewerVideoId = this.viewerOrders.at(-1)?.videoId;
-				let toIndex = updatedQueue.findIndex(
-					(v) => v.videoId === lastViewerVideoId,
-				);
+				const lastViewerTrack = [...this.viewerOrders]
+					.reverse()
+					.find(
+						(vo) =>
+							vo.videoId !== body.videoId &&
+							updatedQueue.some((q) => q.videoId === vo.videoId),
+					);
+
+				let toIndex = -1;
+				if (lastViewerTrack) {
+					toIndex = updatedQueue.findIndex(
+						(v) => v.videoId === lastViewerTrack.videoId,
+					);
+				}
 
 				if (toIndex === -1) {
 					const latestCurrentSong = await this.getCurrentSong();
@@ -167,40 +225,24 @@ export class MusicService {
 				}
 
 				let targetIndex = toIndex !== -1 ? toIndex + 1 : 0;
-
-				if (fromIndex < targetIndex) {
-					targetIndex--;
-				}
+				if (fromIndex < targetIndex) targetIndex--;
 
 				if (fromIndex !== targetIndex) {
-					console.log(
-						`Moving song from index ${fromIndex} to target index ${targetIndex}`,
-					);
 					await fetch(
 						`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
 						{
 							method: "PATCH",
-							headers: {
-								"Content-Type": "application/json",
-							},
-							body: JSON.stringify({
-								toIndex: targetIndex,
-							}),
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ toIndex: targetIndex }),
 						},
 					);
 				}
-			} else {
-				console.log(
-					"Error: Could not find the newly added song in queue after max attempts.",
-				);
 			}
-		}
-
-		if (body.tag === "viewer") {
-			this.viewerOrders.push({
-				videoId: body.videoId,
-				viewerName: body.viewerName,
-			});
+		} catch (error) {
+			this.logger.error("addToTract:", error);
+			throw error;
+		} finally {
+			this.isProcessingQueue = false;
 		}
 	}
 

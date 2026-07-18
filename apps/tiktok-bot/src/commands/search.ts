@@ -1,6 +1,6 @@
 import { Command } from "@/core";
-import { connection } from "@/index";
 import { type SearchResponse } from "@/interfaces";
+import { logger } from "@/utils";
 
 export default class Search extends Command implements Command {
 	private static queue: Promise<void> = Promise.resolve();
@@ -12,7 +12,15 @@ export default class Search extends Command implements Command {
 	run(...args: string[]): void {
 		Search.queue = Search.queue
 			.then(() => this.executeSearch(...args))
-			.catch((err) => console.error("Lỗi trong hàng đợi Search:", err));
+			.catch((err) =>
+				logger.error(
+					{
+						context: "SearchCommand",
+						error: err instanceof Error ? err.message : String(err),
+					},
+					"Lỗi trong hàng đợi Search",
+				),
+			);
 	}
 
 	private async executeSearch(...args: string[]): Promise<void> {
@@ -64,12 +72,17 @@ export default class Search extends Command implements Command {
 					`[queueResponse] ${queueResponse.status} ${queueResponse.statusText}`,
 				);
 
-			if (!connection.options.authenticateWs) {
-				console.log(`${username} vừa mới thêm nhạc ${songInfo?.songAndArtist}`);
-				return;
-			}
+			logger.info(
+				{
+					context: "SearchCommand",
+				},
+				`@${username} đã thêm thành công bài hát: ${songInfo.songAndArtist}`,
+			);
 		} catch (e) {
-			console.error(e);
+			logger.error(
+				{ context: "SearchCommand", error: e },
+				`Lỗi khi xử lý yêu cầu tìm kiếm của @${username}`,
+			);
 		}
 	}
 

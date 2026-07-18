@@ -28,6 +28,7 @@
 		"node": ">=18"
 	},
 	"dependencies": {
-		"@swc/helpers": "^0.5.23"
+		"@swc/helpers": "^0.5.23",
+		"chokidar": "4"
 	}
 }
