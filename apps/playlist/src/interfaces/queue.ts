@@ -4,4 +4,5 @@ export interface QueueType {
 	author: string;
 	tag?: string;
 	viewerName: string;
+	index: number;
 }

@@ -35,7 +35,7 @@ export class MusicService {
 
 		const data = (await response.json()) as QueueResponse;
 
-		return data.items.map((item) => ({
+		return data.items.map((item, index) => ({
 			videoId:
 				item.playlistPanelVideoWrapperRenderer?.primaryRenderer
 					.playlistPanelVideoRenderer.videoId ??
@@ -69,6 +69,7 @@ export class MusicService {
 							.playlistPanelVideoRenderer.videoId ||
 					v.videoId === item.playlistPanelVideoRenderer?.videoId,
 			)?.viewerName,
+			index,
 		}));
 	}
 
@@ -315,8 +316,6 @@ export class MusicService {
 				this.viewerOrders.splice(i, 1);
 			}
 		}
-
-		this.logger.log(this.viewerOrders);
 	}
 
 	@Interval(1000)
@@ -346,6 +345,8 @@ export class MusicService {
 					: undefined,
 			});
 		}
+
 		this.previousQueueLength = data.length;
+		this.previousQueueHash = queueHash;
 	}
 }

@@ -18,7 +18,11 @@
 			"preset": "recommended",
 			"style": {
 				"useImportType": "off"
-			}
+			},
+			"performance": {
+				"noImgElement": "off"
+			},
+			"correctness": { "useExhaustiveDependencies": "off" }
 		}
 	},
 	"javascript": {
