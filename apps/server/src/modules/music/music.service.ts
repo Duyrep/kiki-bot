@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { EventEmitter2 } from "@nestjs/event-emitter";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
 import { MusicEvents } from "@rep/shared/events";
 import * as murmur from "murmurhash3js";
@@ -87,6 +87,11 @@ export class MusicService {
 	}
 
 	async addToTract(body: AddToQueueDto) {
+		const maxSongsInQueue =
+			Number(this.configService.get<number>("MAX_SONGS_IN_QUEUE")) ?? 10;
+
+		if (this.viewerOrders.length >= maxSongsInQueue + 1) return;
+
 		while (this.isProcessingQueue) {
 			await new Promise((resolve) => setTimeout(resolve, 100));
 		}
@@ -96,14 +101,14 @@ export class MusicService {
 			const delay = (ms: number) =>
 				new Promise((resolve) => setTimeout(resolve, ms));
 
-			const queue = await this.getQueue();
+			let queue = await this.getQueue();
 			const currentSong = await this.getCurrentSong();
 
 			const currentSongIndex = queue.findIndex(
 				(v) => v.videoId === currentSong.videoId,
 			);
 			const rangeStart = currentSongIndex + 1;
-			const rangeEnd = currentSongIndex + 11;
+			const rangeEnd = currentSongIndex + maxSongsInQueue + 1;
 
 			const safeZoneTracks = queue.slice(rangeStart, rangeEnd);
 			const duplicateInSafeZone = safeZoneTracks.find(
@@ -137,34 +142,54 @@ export class MusicService {
 				});
 			}
 
-			if (duplicateInSafeZone) {
-				const indexInQueue = queue.findIndex(
-					(v, idx) =>
-						idx >= rangeStart && idx < rangeEnd && v.videoId === body.videoId,
-				);
-				if (indexInQueue !== -1) {
-					await fetch(
-						`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${indexInQueue}`,
-						{
-							method: "DELETE",
-							headers: { "Content-Type": "application/json" },
-						},
-					);
+			const safeZoneWithIndices = queue
+				.map((video, index) => ({ video, index }))
+				.slice(rangeStart, rangeEnd);
+
+			const seenVideoIds = new Set<string>();
+			const indicesToDelete: number[] = [];
+
+			for (let i = safeZoneWithIndices.length - 1; i >= 0; i--) {
+				const item = safeZoneWithIndices[i];
+				if (!item) continue;
+				const videoId = item.video.videoId;
+
+				if (seenVideoIds.has(videoId)) {
+					if (item.video.tag === "viewer") {
+						continue;
+					}
+					indicesToDelete.push(item.index);
+				} else {
+					seenVideoIds.add(videoId);
 				}
-			} else {
-				const duplicateOutsideIndex = queue.findIndex(
-					(v, idx) =>
-						v.videoId === body.videoId && (idx < rangeStart || idx >= rangeEnd),
-				);
-				if (duplicateOutsideIndex !== -1) {
-					await fetch(
-						`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${duplicateOutsideIndex}`,
-						{
-							method: "DELETE",
-							headers: { "Content-Type": "application/json" },
-						},
-					);
+			}
+
+			safeZoneWithIndices.forEach((item) => {
+				if (
+					item.video.videoId === body.videoId &&
+					item.video.tag !== "viewer" &&
+					!indicesToDelete.includes(item.index)
+				) {
+					indicesToDelete.push(item.index);
 				}
+			});
+
+			if (indicesToDelete.length > 0) {
+				indicesToDelete.sort((a, b) => b - a);
+
+				for (const indexToDelete of indicesToDelete) {
+					try {
+						this.delete(indexToDelete);
+						await delay(1000);
+					} catch (err) {
+						this.logger.error(
+							`Lỗi không thể xóa bài trùng tại index ${indexToDelete}:`,
+							err,
+						);
+					}
+				}
+
+				queue = await this.getQueue();
 			}
 
 			await fetch(
@@ -187,13 +212,21 @@ export class MusicService {
 				if (this.viewerOrders.length > 100) this.viewerOrders.shift();
 			}
 
-			let updatedQueue = await this.getQueue();
+			let updatedQueue = (await this.getQueue()).slice(rangeStart, rangeEnd);
+
+			this.logger.log(
+				updatedQueue.length,
+				rangeStart,
+				rangeEnd,
+				typeof rangeEnd,
+			);
+
 			let attempts = 0;
 			while (
 				!updatedQueue.some((v) => v.videoId === body.videoId) &&
 				attempts < 10
 			) {
-				await delay(3000);
+				await delay(2000);
 				updatedQueue = await this.getQueue();
 				attempts++;
 			}
@@ -244,6 +277,46 @@ export class MusicService {
 		} finally {
 			this.isProcessingQueue = false;
 		}
+	}
+
+	async delete(indexToDelete: number) {
+		await fetch(
+			`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${indexToDelete}`,
+			{
+				method: "DELETE",
+				headers: { "Content-Type": "application/json" },
+			},
+		);
+	}
+
+	@OnEvent(MusicEvents.VIDEO_CHANGED)
+	async handleVideoChanged() {
+		const maxSongsInQueue =
+			this.configService.get<number>("MAX_SONGS_IN_QUEUE") ?? 10;
+		const queue = await this.getQueue();
+		const currentSong = await this.getCurrentSong();
+		const currentSongIndex = queue.findIndex(
+			(v) => v.videoId === currentSong.videoId,
+		);
+
+		const zone = queue.slice(
+			currentSongIndex + 1,
+			currentSongIndex + maxSongsInQueue + 1,
+		);
+
+		for (let i = this.viewerOrders.length - 1; i >= 0; i--) {
+			const currentOrder = this.viewerOrders.at(i);
+
+			const isInZone = zone.some(
+				(zoneItem) => zoneItem.videoId === currentOrder?.videoId,
+			);
+
+			if (!isInZone) {
+				this.viewerOrders.splice(i, 1);
+			}
+		}
+
+		this.logger.log(this.viewerOrders);
 	}
 
 	@Interval(1000)

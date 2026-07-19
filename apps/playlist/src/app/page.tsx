@@ -126,7 +126,7 @@ export default function Home() {
 
 				return (
 					<div
-						key={song.videoId}
+						key={song.videoId + index}
 						className={twMerge(
 							"relative flex items-center gap-2.5 w-48 min-w-48 p-2 rounded-lg overflow-hidden",
 							"border backdrop-blur-sm z-0 relative",

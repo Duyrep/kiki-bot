@@ -1,6 +1,8 @@
 export default interface EnvironmentVariables {
 	NODE_ENV: "development" | "production";
 
+	MAX_SONGS_IN_QUEUE: number;
+
 	PORT: number;
 	SERVER_URL: string;
 

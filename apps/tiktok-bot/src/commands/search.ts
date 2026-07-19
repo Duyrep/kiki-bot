@@ -24,6 +24,10 @@ export default class Search extends Command implements Command {
 	}
 
 	private async executeSearch(...args: string[]): Promise<void> {
+		const delay = (ms: number) =>
+			new Promise((resolve) => setTimeout(resolve, ms));
+		await delay(5000);
+
 		const username = args.at(0);
 		const query = args.slice(1).join(" ");
 
