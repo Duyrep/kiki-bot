@@ -105,6 +105,8 @@ export class MusicService {
 			let queue = await this.getQueue();
 			const currentSong = await this.getCurrentSong();
 
+			if (currentSong && currentSong.videoId === body.videoId) return;
+
 			const currentSongIndex = queue.findIndex(
 				(v) => v.videoId === currentSong.videoId,
 			);
@@ -191,6 +193,25 @@ export class MusicService {
 				}
 
 				queue = await this.getQueue();
+			}
+
+			const freshSafeZone = queue.slice(rangeStart, rangeEnd);
+			const externalDuplicateMovedIn = freshSafeZone.findIndex(
+				(v) => v.videoId === body.videoId && v.tag !== "viewer",
+			);
+
+			if (externalDuplicateMovedIn !== -1) {
+				const absoluteIndexToDelete = rangeStart + externalDuplicateMovedIn;
+				try {
+					this.delete(absoluteIndexToDelete);
+					await delay(1000);
+					queue = await this.getQueue();
+				} catch (err) {
+					this.logger.error(
+						`Lỗi xóa bài trùng lặp lọt vào safe zone tại index ${absoluteIndexToDelete}:`,
+						err,
+					);
+				}
 			}
 
 			await fetch(

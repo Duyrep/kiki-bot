@@ -1,7 +1,7 @@
 "use client";
 
 import { MusicEvents } from "@rep/shared/events";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import QueueCard from "@/components/ui/QueueCard";
 import { QueueType } from "@/interfaces/queue";
@@ -22,21 +22,35 @@ export default function Home() {
 	const [upcomingQueue, setUpcomingQueue] = useState<QueueType[]>([]);
 	const [animStage, setAnimStage] = useState<AnimationStage>("idle");
 
+	const [isFirstLoad, setIsFirstLoad] = useState<boolean>(true);
+
+	const isInitialChangeRef = useRef<boolean>(true);
+
+	const latestQueueRef = useRef<QueueType[]>([]);
+	latestQueueRef.current = queue;
+
 	useEffect(() => {
 		(async () => {
 			const data = await getVideoPlaying();
 			setVideoPlaying(data.videoId);
 
-			const queue = await getQueue();
+			const initialQueue = await getQueue();
+			setQueue(initialQueue);
 
 			setUpcomingQueue(
-				queue.slice(
+				initialQueue.slice(
 					...(() => {
-						const start = queue.findIndex((v) => v.videoId === data.videoId);
+						const start = initialQueue.findIndex(
+							(v) => v.videoId === data.videoId,
+						);
 						return [start + 1, start + 11];
 					})(),
 				),
 			);
+
+			setTimeout(() => {
+				setIsFirstLoad(false);
+			}, 1500);
 		})();
 	}, []);
 
@@ -49,12 +63,21 @@ export default function Home() {
 		const fetchQueue = async () => {
 			const data = await getQueue();
 			setQueue(data);
+			return data;
 		};
 
 		fetchQueue();
 
-		socket?.on(MusicEvents.QUEUE_UPDATE, () => {
-			fetchQueue();
+		socket?.on(MusicEvents.QUEUE_UPDATE, async () => {
+			const data = await fetchQueue();
+			setUpcomingQueue(
+				data.slice(
+					...(() => {
+						const start = data.findIndex((v) => v.videoId === videoPlaying);
+						return [start + 1, start + 11];
+					})(),
+				),
+			);
 		});
 		socket?.on(
 			MusicEvents.VIDEO_CHANGED,
@@ -68,28 +91,32 @@ export default function Home() {
 	useEffect(() => {
 		if (!videoPlaying) return;
 
-		// 1. Chạy fadeout card cũ trong 1s
+		if (isInitialChangeRef.current) {
+			isInitialChangeRef.current = false;
+			return;
+		}
+
 		setAnimStage("fadeout");
 
 		const afterFadeOutTimeout = setTimeout(() => {
-			// 2. Hết 1s: Cập nhật luôn danh sách queue mới lên UI
+			const currentQueue = latestQueueRef.current;
+
 			setUpcomingQueue(
-				queue.slice(
+				currentQueue.slice(
 					...(() => {
-						const start = queue.findIndex((v) => v.videoId === videoPlaying);
+						const start = currentQueue.findIndex(
+							(v) => v.videoId === videoPlaying,
+						);
 						return [start + 1, start + 11];
 					})(),
 				),
 			);
 
-			// 3. Đồng thời ép div bọc ngoài của phần tử mới dịch sang phải 200px ngay lập tức (duration-0)
 			setAnimStage("shift");
 
-			// 4. Chờ một nhịp siêu ngắn để DOM nhận style dịch chuyển, rồi kích hoạt slide-in kéo về pl-0
 			const slideInTimeout = setTimeout(() => {
 				setAnimStage("slidein");
 
-				// 5. Sau khi trượt xong 1s thì trả về trạng thái idle bình thường
 				const idleTimeout = setTimeout(() => {
 					setAnimStage("idle");
 				}, 1000);
@@ -101,7 +128,7 @@ export default function Home() {
 		}, 1000);
 
 		return () => clearTimeout(afterFadeOutTimeout);
-	}, [videoPlaying, queue]);
+	}, [videoPlaying]);
 
 	return (
 		<div className="bg-transparent flex items-center gap-3 w-full h-full overflow-x-auto py-4 px-4 scrollbar-none select-none z-0 relative">
@@ -113,21 +140,32 @@ export default function Home() {
       `}</style>
 
 			{upcomingQueue.map((song, index) => {
+				const animationDurationMs = 400 + index * 100;
+
 				if (index === 0) {
 					return (
 						<div
 							key={song.videoId + song.index}
 							className={twMerge(
 								"transition-[padding] ease-in-out",
-								animStage === "shift" && "duration-0 pl-50",
+								animStage === "shift" && "duration-0 pl-[200px]",
 								animStage === "slidein" && "duration-1000 pl-0",
 							)}
 						>
 							<QueueCard
 								song={song}
 								index={index}
+								style={
+									isFirstLoad
+										? {
+												animationDuration: `${animationDurationMs}ms`,
+												animationTimingFunction: "ease-out",
+											}
+										: undefined
+								}
 								className={twMerge(
-									"animate-reverse",
+									isFirstLoad ? "" : "animate-reverse",
+									isFirstLoad && "animate-fade-up",
 									animStage === "fadeout" && "animate-fade duration-1000",
 								)}
 							/>
@@ -140,7 +178,15 @@ export default function Home() {
 						key={song.videoId + song.index}
 						song={song}
 						index={index}
-						className=""
+						style={
+							isFirstLoad
+								? {
+										animationDuration: `${animationDurationMs}ms`,
+										animationTimingFunction: "ease-out",
+									}
+								: undefined
+						}
+						className={twMerge(isFirstLoad && "animate-fade-up")}
 					/>
 				);
 			})}

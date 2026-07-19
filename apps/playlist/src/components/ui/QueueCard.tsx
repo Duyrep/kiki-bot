@@ -1,6 +1,7 @@
 "use client";
 
 import { Bot, Crown, User } from "lucide-react";
+import { CSSProperties } from "react";
 import { twMerge } from "tailwind-merge";
 import { QueueType } from "@/interfaces/queue";
 
@@ -9,6 +10,7 @@ interface CardProps {
 	index: number;
 	thumbnailUrl: string;
 	className?: string;
+	style?: CSSProperties;
 }
 
 export function SystemCard({
@@ -16,6 +18,7 @@ export function SystemCard({
 	index,
 	thumbnailUrl,
 	className,
+	style,
 }: CardProps) {
 	return (
 		<div
@@ -28,6 +31,7 @@ export function SystemCard({
 			style={{
 				animationDelay: `${index * 60}ms`,
 				animationFillMode: "both",
+				...style,
 			}}
 		>
 			<ThumbnailBackground thumbnailUrl={thumbnailUrl} />
@@ -57,7 +61,13 @@ export function SystemCard({
 }
 
 // 2. COMPONENT VIP (SPECIAL VIEWER)
-export function VipCard({ song, index, thumbnailUrl, className }: CardProps) {
+export function VipCard({
+	song,
+	index,
+	thumbnailUrl,
+	className,
+	style,
+}: CardProps) {
 	return (
 		<div
 			className={twMerge(
@@ -69,6 +79,7 @@ export function VipCard({ song, index, thumbnailUrl, className }: CardProps) {
 			style={{
 				animationDelay: `${index * 60}ms`,
 				animationFillMode: "both",
+				...style,
 			}}
 		>
 			{/* --- HIỆU ỨNG NỀN VIP --- */}
@@ -156,7 +167,13 @@ export function VipCard({ song, index, thumbnailUrl, className }: CardProps) {
 }
 
 // 3. COMPONENT REQ (VIEWER)
-export function ReqCard({ song, index, thumbnailUrl, className }: CardProps) {
+export function ReqCard({
+	song,
+	index,
+	thumbnailUrl,
+	className,
+	style,
+}: CardProps) {
 	return (
 		<div
 			className={twMerge(
@@ -168,6 +185,7 @@ export function ReqCard({ song, index, thumbnailUrl, className }: CardProps) {
 			style={{
 				animationDelay: `${index * 60}ms`,
 				animationFillMode: "both",
+				...style,
 			}}
 		>
 			<ThumbnailBackground thumbnailUrl={thumbnailUrl} />
@@ -269,10 +287,12 @@ export default function QueueCard({
 	song,
 	index,
 	className,
+	style,
 }: {
 	song: QueueType;
 	index: number;
 	className?: string;
+	style?: CSSProperties;
 }) {
 	const thumbnailUrl = `https://img.youtube.com/vi/${song?.videoId}/mqdefault.jpg`;
 	const specialViewers =
@@ -286,6 +306,7 @@ export default function QueueCard({
 				index={index}
 				thumbnailUrl={thumbnailUrl}
 				className={className}
+				style={style}
 			/>
 		);
 	}
@@ -297,6 +318,7 @@ export default function QueueCard({
 				index={index}
 				thumbnailUrl={thumbnailUrl}
 				className={className}
+				style={style}
 			/>
 		);
 	}
@@ -307,6 +329,7 @@ export default function QueueCard({
 			index={index}
 			thumbnailUrl={thumbnailUrl}
 			className={className}
+			style={style}
 		/>
 	);
 }
