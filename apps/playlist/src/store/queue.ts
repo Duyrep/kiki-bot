@@ -28,7 +28,7 @@ export const useQueueStore = create<QueueState>((set, get) => ({
 	fetchQueue: async () => {
 		const queue = await getQueue();
 		const start = (await getCurrentSongIndex()) + 1;
-		set({ queue, upComingQueue: queue.slice(start, start + 4) });
+		set({ queue, upComingQueue: queue.slice(start, start + 10) });
 	},
 
 	fetchCurrentSong: async () => {

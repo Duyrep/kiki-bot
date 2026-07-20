@@ -82,6 +82,7 @@ export default function Test() {
 						animationFillMode: "both",
 					}}
 				>
+					<div className="text-xs absolute z-50 -translate-y-20">{item.id}</div>
 					<QueueCard song={item} index={index} />
 				</div>
 			))}

@@ -21,16 +21,11 @@ export class MusicController {
 
 	@Get("test")
 	async test() {
-		return await this.musicService.addSongToQueue2({
-			videoId: "T_VyIfqyCa4",
-			viewerName: "duyrep",
-			tag: "viewer",
-			insertPosition: InsertPosition.AFTER_END_OF_VIEWERS_VIDEO,
-		});
+		return this.musicService.viewerOrders;
 	}
 
 	@Post("queue")
 	async addToQueue(@Body() body: AddToQueueDto) {
-		await this.musicService.addSongToQueue2(body);
+		await this.musicService.addSongToQueue3(body);
 	}
 }

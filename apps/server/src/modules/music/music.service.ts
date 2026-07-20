@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
@@ -12,7 +12,7 @@ import {
 } from "./dto/addSongToQueue.dto";
 import type { AddToQueueDto } from "./dto/addToQueue.dto";
 
-interface QueueType {
+interface QueueItem {
 	videoId: string;
 	title: string;
 	author: string;
@@ -26,13 +26,15 @@ interface QueueType {
 export class MusicService {
 	private readonly logger = new Logger("MusicService");
 
-	private viewerOrders: {
+	public viewerOrders: {
+		id: string;
 		videoId: string;
 		viewerName: string;
 		createdAt: number;
 	}[] = [];
 	private previousQueueLength: number = 0;
 	private previousQueueHash: number = 0;
+	private previousOrdersHash: number = 0;
 
 	constructor(
 		private readonly eventEmitter: EventEmitter2,
@@ -57,21 +59,22 @@ export class MusicService {
 
 				const videoId = video?.videoId ?? "";
 
-				const id = videoId
-					? `${videoId}_${video?.trackingParams ?? ""}`
-					: `empty_${index}`;
+				const id =
+					video?.menu.menuRenderer.items.find(
+						(v) => v.menuServiceItemRenderer?.icon.iconType === "REMOVE",
+					)?.menuServiceItemRenderer?.serviceEndpoint?.removeFromQueueEndpoint
+						?.itemId ?? `empty_${index}`;
 
-				const viewerOrder = videoId
-					? this.viewerOrders.find((v) => v.videoId === videoId)
-					: undefined;
+				const order = this.viewerOrders.find((v) => v.id === id);
 
 				return {
 					id,
 					videoId,
+					orderId: order?.id,
 					title: video?.title?.runs?.[0]?.text ?? "unknown",
 					author: video?.longBylineText?.runs?.[0]?.text ?? "unknown",
-					tag: viewerOrder ? "viewer" : undefined,
-					viewerName: viewerOrder?.viewerName,
+					viewerName: order?.viewerName,
+					tag: order ? "viewer" : undefined,
 					selected: video?.selected ?? false,
 					index,
 				};
@@ -108,220 +111,6 @@ export class MusicService {
 		);
 	}
 
-	// async addToTract(body: AddToQueueDto) {
-	// 	const maxSongsInQueue =
-	// 		Number(this.configService.get<number>("MAX_SONGS_IN_QUEUE")) ?? 10;
-
-	// 	if (this.viewerOrders.length >= maxSongsInQueue + 1) return;
-
-	// 	while (this.isProcessingQueue) {
-	// 		await new Promise((resolve) => setTimeout(resolve, 100));
-	// 	}
-	// 	this.isProcessingQueue = true;
-
-	// 	try {
-	// 		const delay = (ms: number) =>
-	// 			new Promise((resolve) => setTimeout(resolve, ms));
-
-	// 		let queue = await this.getQueue();
-	// 		const currentSong = await this.getCurrentSong();
-
-	// 		if (currentSong && currentSong.videoId === body.videoId) return;
-
-	// 		const currentSongIndex = queue.findIndex(
-	// 			(v) => v.videoId === currentSong.videoId,
-	// 		);
-	// 		const rangeStart = currentSongIndex + 1;
-	// 		const rangeEnd = currentSongIndex + maxSongsInQueue + 1;
-
-	// 		const safeZoneTracks = queue.slice(rangeStart, rangeEnd);
-	// 		const duplicateInSafeZone = safeZoneTracks.find(
-	// 			(v) => v.videoId === body.videoId,
-	// 		);
-
-	// 		if (duplicateInSafeZone && duplicateInSafeZone.tag === "viewer") {
-	// 			return;
-	// 		}
-
-	// 		if (body.viewerName) {
-	// 			const now = Date.now();
-	// 			const timeWindow = 45 * 1000;
-	// 			const maxRequests = 2;
-
-	// 			this.requestHistory = this.requestHistory.filter(
-	// 				(req) => now - req.timestamp < timeWindow,
-	// 			);
-
-	// 			const viewerRequestsInWindow = this.requestHistory.filter(
-	// 				(req) => req.viewerName === body.viewerName,
-	// 			);
-
-	// 			if (viewerRequestsInWindow.length >= maxRequests) {
-	// 				throw new BadRequestException("TOO MANY REQUEST");
-	// 			}
-
-	// 			this.requestHistory.push({
-	// 				viewerName: body.viewerName,
-	// 				timestamp: now,
-	// 			});
-	// 		}
-
-	// 		const safeZoneWithIndices = queue
-	// 			.map((video, index) => ({ video, index }))
-	// 			.slice(rangeStart, rangeEnd);
-
-	// 		const seenVideoIds = new Set<string>();
-	// 		const indicesToDelete: number[] = [];
-
-	// 		for (let i = safeZoneWithIndices.length - 1; i >= 0; i--) {
-	// 			const item = safeZoneWithIndices[i];
-	// 			if (!item) continue;
-	// 			const videoId = item.video.videoId;
-
-	// 			if (seenVideoIds.has(videoId)) {
-	// 				if (item.video.tag === "viewer") {
-	// 					continue;
-	// 				}
-	// 				indicesToDelete.push(item.index);
-	// 			} else {
-	// 				seenVideoIds.add(videoId);
-	// 			}
-	// 		}
-
-	// 		safeZoneWithIndices.forEach((item) => {
-	// 			if (
-	// 				item.video.videoId === body.videoId &&
-	// 				item.video.tag !== "viewer" &&
-	// 				!indicesToDelete.includes(item.index)
-	// 			) {
-	// 				indicesToDelete.push(item.index);
-	// 			}
-	// 		});
-
-	// 		if (indicesToDelete.length > 0) {
-	// 			indicesToDelete.sort((a, b) => b - a);
-
-	// 			for (const indexToDelete of indicesToDelete) {
-	// 				try {
-	// 					this.delete(indexToDelete);
-	// 					await delay(1000);
-	// 				} catch (err) {
-	// 					this.logger.error(
-	// 						`Lỗi không thể xóa bài trùng tại index ${indexToDelete}:`,
-	// 						err,
-	// 					);
-	// 				}
-	// 			}
-
-	// 			queue = await this.getQueue();
-	// 		}
-
-	// 		const freshSafeZone = queue.slice(rangeStart, rangeEnd);
-	// 		const externalDuplicateMovedIn = freshSafeZone.findIndex(
-	// 			(v) => v.videoId === body.videoId && v.tag !== "viewer",
-	// 		);
-
-	// 		if (externalDuplicateMovedIn !== -1) {
-	// 			const absoluteIndexToDelete = rangeStart + externalDuplicateMovedIn;
-	// 			try {
-	// 				this.delete(absoluteIndexToDelete);
-	// 				await delay(1000);
-	// 				queue = await this.getQueue();
-	// 			} catch (err) {
-	// 				this.logger.error(
-	// 					`Lỗi xóa bài trùng lặp lọt vào safe zone tại index ${absoluteIndexToDelete}:`,
-	// 					err,
-	// 				);
-	// 			}
-	// 		}
-
-	// 		await fetch(
-	// 			`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue`,
-	// 			{
-	// 				method: "POST",
-	// 				headers: { "Content-Type": "application/json" },
-	// 				body: JSON.stringify({
-	// 					videoId: body.videoId,
-	// 					insertPosition: "INSERT_AFTER_CURRENT_VIDEO",
-	// 				}),
-	// 			},
-	// 		);
-
-	// 		if (body.viewerName) {
-	// 			this.viewerOrders.push({
-	// 				videoId: body.videoId,
-	// 				viewerName: body.viewerName,
-	// 			});
-	// 			if (this.viewerOrders.length > 100) this.viewerOrders.shift();
-	// 		}
-
-	// 		let updatedQueue = (await this.getQueue()).slice(rangeStart, rangeEnd);
-
-	// 		this.logger.log(
-	// 			updatedQueue.length,
-	// 			rangeStart,
-	// 			rangeEnd,
-	// 			typeof rangeEnd,
-	// 		);
-
-	// 		let attempts = 0;
-	// 		while (
-	// 			!updatedQueue.some((v) => v.videoId === body.videoId) &&
-	// 			attempts < 10
-	// 		) {
-	// 			await delay(2000);
-	// 			updatedQueue = await this.getQueue();
-	// 			attempts++;
-	// 		}
-
-	// 		const fromIndex = updatedQueue.findIndex(
-	// 			(v) => v.videoId === body.videoId,
-	// 		);
-	// 		if (fromIndex !== -1) {
-	// 			const lastViewerTrack = [...this.viewerOrders]
-	// 				.reverse()
-	// 				.find(
-	// 					(vo) =>
-	// 						vo.videoId !== body.videoId &&
-	// 						updatedQueue.some((q) => q.videoId === vo.videoId),
-	// 				);
-
-	// 			let toIndex = -1;
-	// 			if (lastViewerTrack) {
-	// 				toIndex = updatedQueue.findIndex(
-	// 					(v) => v.videoId === lastViewerTrack.videoId,
-	// 				);
-	// 			}
-
-	// 			if (toIndex === -1) {
-	// 				const latestCurrentSong = await this.getCurrentSong();
-	// 				toIndex = updatedQueue.findIndex(
-	// 					(v) => v.videoId === latestCurrentSong.videoId,
-	// 				);
-	// 			}
-
-	// 			let targetIndex = toIndex !== -1 ? toIndex + 1 : 0;
-	// 			if (fromIndex < targetIndex) targetIndex--;
-
-	// 			if (fromIndex !== targetIndex) {
-	// 				await fetch(
-	// 					`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
-	// 					{
-	// 						method: "PATCH",
-	// 						headers: { "Content-Type": "application/json" },
-	// 						body: JSON.stringify({ toIndex: targetIndex }),
-	// 					},
-	// 				);
-	// 			}
-	// 		}
-	// 	} catch (error) {
-	// 		this.logger.error("addToTract:", error);
-	// 		throw error;
-	// 	} finally {
-	// 		this.isProcessingQueue = false;
-	// 	}
-	// }
-
 	async delete(indexToDelete: number) {
 		await fetch(
 			`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${indexToDelete}`,
@@ -332,8 +121,9 @@ export class MusicService {
 		);
 	}
 
-	async addSongToQueue2(body: AddToQueueDto) {
-		if (this.viewerOrders.some((v) => v.videoId === body.videoId)) return;
+	async addSongToQueue3(body: AddToQueueDto) {
+		const maxSongInQueue = this.configService.get("MAX_SONGS_IN_QUEUE") ?? 500;
+		if (this.viewerOrders.length >= maxSongInQueue) return;
 
 		const timeWindow = 45 * 1000;
 		const now = Date.now();
@@ -346,49 +136,29 @@ export class MusicService {
 			return;
 		}
 
-		const currentSong = await this.getCurrentSong();
-
-		if (body.videoId === currentSong.videoId) return;
-
-		const maxSongInQueue = this.configService.get("MAX_SONGS_IN_QUEUE") ?? 10;
-
-		if (this.viewerOrders.length >= maxSongInQueue) return;
-
 		const currentSongIndex = await this.getCurrentSongIndex();
 
-		let queue = await this.getQueue(currentSongIndex + 1, maxSongInQueue + 1);
-
-		while (queue.some((v) => v.videoId === body.videoId)) {
-			const target = queue.find((v) => v.videoId === body.videoId);
-			if (target && target.index !== undefined) {
-				const _queue = await this.getQueue();
-				await this.delete(target.index);
-				await this.waitForQueueUpdate(_queue);
-			}
-			queue = await this.getQueue(currentSongIndex + 1, maxSongInQueue + 1);
-		}
-
-		let _queue = await this.getQueue();
-
+		const _queue = await this.getQueue();
 		await this.addSongToQueue({
 			videoId: body.videoId,
 			insertPosition: InsertPosition.INSERT_AFTER_CURRENT_VIDEO,
 		});
-
 		await this.waitForQueueUpdate(_queue);
 
+		const queue = await this.getQueue();
+		let youtubeItemId = queue.at(currentSongIndex + 1)?.id ?? "";
+
 		if (this.viewerOrders.length > 0) {
-			queue = await this.getQueue(currentSongIndex + 1, maxSongInQueue + 1);
+			let queue = await this.getQueue(currentSongIndex + 1, maxSongInQueue + 1);
 
-			const fromIndex = queue.find((v) => v.videoId === body.videoId)?.index;
+			const fromIndex = currentSongIndex + 1;
 
-			const toIndex = queue.find(
-				(v) => v.videoId === this.viewerOrders.at(-1)?.videoId,
-			)?.index;
-
-			this.logger.log(fromIndex, toIndex);
+			const viewerQueue = queue.filter((v) => v.tag === "viewer");
+			const toIndex = viewerQueue.at(-1)?.index;
 
 			if (!fromIndex || !toIndex) return;
+
+			const _queue = await this.getQueue();
 			await fetch(
 				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
 				{
@@ -397,19 +167,23 @@ export class MusicService {
 					body: JSON.stringify({ toIndex }),
 				},
 			);
+			await this.waitForQueueUpdate(_queue);
+
+			queue = await this.getQueue();
+			youtubeItemId = queue.at(toIndex)?.id ?? "";
+			console.log(toIndex, queue.at(toIndex));
 		}
 
-		_queue = await this.getQueue();
 		this.viewerOrders.push({
+			id: youtubeItemId,
 			videoId: body.videoId,
 			viewerName: body.viewerName,
 			createdAt: Date.now(),
 		});
-		await this.waitForQueueUpdate(_queue);
 	}
 
 	private async waitForQueueUpdate(
-		initialQueue: QueueType[],
+		initialQueue: QueueItem[],
 		maxAttempts: number = 10,
 		delayMs: number = 300,
 	) {
@@ -446,39 +220,32 @@ export class MusicService {
 		const maxSongsInQueue =
 			this.configService.get<number>("MAX_SONGS_IN_QUEUE") ?? 10;
 		const queue = await this.getQueue();
-		const currentSong = await this.getCurrentSong();
-		const currentSongIndex = queue.findIndex(
-			(v) => v.videoId === currentSong.videoId,
-		);
+		const currentSongIndex = await this.getCurrentSongIndex();
 
 		const zone = queue.slice(
 			currentSongIndex + 1,
 			currentSongIndex + maxSongsInQueue + 1,
 		);
 
-		for (let i = this.viewerOrders.length - 1; i >= 0; i--) {
-			const currentOrder = this.viewerOrders.at(i);
+		const activeOrderIds = zone.map((v) => v.orderId).filter((v) => v);
 
-			const isInZone = zone.some(
-				(zoneItem) => zoneItem.videoId === currentOrder?.videoId,
-			);
-
-			if (!isInZone) {
-				this.viewerOrders.splice(i, 1);
-			}
-		}
+		this.viewerOrders = this.viewerOrders.filter((v) =>
+			activeOrderIds.includes(v.id),
+		);
 	}
 
 	@Interval(1000)
 	async updateQueuePolling() {
 		try {
-			const data = (await this.getQueue()).map((v) => v.videoId);
+			const data = (await this.getQueue()).map((v) => v.id);
 			const stableString = JSON.stringify(data);
 			const queueHash = murmur.x86.hash32(stableString);
+			const orderHash = murmur.x86.hash32(JSON.stringify(this.viewerOrders));
 
 			if (
 				data.length === this.previousQueueLength &&
-				this.previousQueueHash === queueHash
+				this.previousQueueHash === queueHash &&
+				this.previousOrdersHash === orderHash
 			)
 				return;
 
