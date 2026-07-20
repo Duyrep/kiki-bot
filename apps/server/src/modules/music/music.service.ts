@@ -34,7 +34,6 @@ export class MusicService {
 	}[] = [];
 	private previousQueueLength: number = 0;
 	private previousQueueHash: number = 0;
-	private previousOrdersHash: number = 0;
 
 	constructor(
 		private readonly eventEmitter: EventEmitter2,
@@ -240,12 +239,10 @@ export class MusicService {
 			const data = (await this.getQueue()).map((v) => v.id);
 			const stableString = JSON.stringify(data);
 			const queueHash = murmur.x86.hash32(stableString);
-			const orderHash = murmur.x86.hash32(JSON.stringify(this.viewerOrders));
 
 			if (
 				data.length === this.previousQueueLength &&
-				this.previousQueueHash === queueHash &&
-				this.previousOrdersHash === orderHash
+				this.previousQueueHash === queueHash
 			)
 				return;
 
