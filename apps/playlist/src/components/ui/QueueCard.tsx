@@ -3,10 +3,11 @@
 import { Bot, Crown, User } from "lucide-react";
 import { CSSProperties } from "react";
 import { twMerge } from "tailwind-merge";
-import { QueueType } from "@/interfaces/queue";
+import { QueueItem } from "@/interfaces/queue";
+import MarqueeText from "./MarqueeText";
 
 interface CardProps {
-	song: QueueType;
+	song: QueueItem;
 	index: number;
 	thumbnailUrl: string;
 	className?: string;
@@ -29,8 +30,6 @@ export function SystemCard({
 				className,
 			)}
 			style={{
-				animationDelay: `${index * 60}ms`,
-				animationFillMode: "both",
 				...style,
 			}}
 		>
@@ -41,19 +40,15 @@ export function SystemCard({
 				index={index}
 			/>
 
-			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
-				<SongTitle title={song.title} titleClass="system-song-title" />
-				<p className="text-[11px] truncate font-semibold -mt-0.5 opacity-90 system-song-author">
-					{song.author}
-				</p>
-				<div className="flex items-center gap-1.5 mt-1.5">
+			<div className="flex flex-col w-48 z-10">
+				<MarqueeText text={song.title} className="system-song-title" />
+				<MarqueeText text={song.author} className="system-song-author" />
+				<div className="flex items-center gap-1 mt-1.5">
 					<div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full system-tag border border-zinc-700/50 scale-95 origin-left">
 						<Bot size={10} className="opacity-70" strokeWidth={2.5} />
 						<span className="font-bold tracking-tight">SYS</span>
 					</div>
-					<span className="text-[11px] truncate font-black flex-1 system-name">
-						{song.viewerName ? `@${song.viewerName}` : "@system"}
-					</span>
+					<MarqueeText text="@system" className="system-name" />
 				</div>
 			</div>
 		</div>
@@ -77,12 +72,9 @@ export function VipCard({
 				className,
 			)}
 			style={{
-				animationDelay: `${index * 60}ms`,
-				animationFillMode: "both",
 				...style,
 			}}
 		>
-			{/* --- HIỆU ỨNG NỀN VIP --- */}
 			<div className="absolute inset-0 -z-30 overflow-hidden rounded-lg pointer-events-none">
 				<div
 					className="absolute top-1/2 left-1/2 w-[300%] h-[300%] -translate-x-1/2 -translate-y-1/2"
@@ -139,10 +131,11 @@ export function VipCard({
 			/>
 
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
-				<SongTitle title={song.title} titleClass="special-viewer-song-title" />
-				<p className="text-[11px] truncate font-semibold -mt-0.5 opacity-90 special-viewer-song-author">
-					{song.author}
-				</p>
+				<MarqueeText text={song.title} className="special-viewer-song-title" />
+				<MarqueeText
+					text={song.author}
+					className="special-viewer-song-author"
+				/>
 				<div className="flex items-center gap-1.5 mt-1.5">
 					<div
 						className={twMerge(
@@ -160,6 +153,10 @@ export function VipCard({
 					<span className="text-[11px] truncate font-black flex-1 special-viewer-name">
 						{song.viewerName ? `@${song.viewerName}` : "@system"}
 					</span>
+					<MarqueeText
+						text={`@${song.viewerName}`}
+						className="special-viewer-name"
+					/>
 				</div>
 			</div>
 		</div>
@@ -196,10 +193,8 @@ export function ReqCard({
 			/>
 
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
-				<SongTitle title={song.title} titleClass="viewer-song-title" />
-				<p className="text-[11px] truncate font-semibold -mt-0.5 opacity-90 viewer-song-author">
-					{song.author}
-				</p>
+				<MarqueeText text={song.title} className="viewer-song-title" />
+				<MarqueeText text={song.author} className="viewer-song-author" />
 				<div className="flex items-center gap-1.5 mt-1.5">
 					<div
 						className={twMerge(
@@ -210,9 +205,7 @@ export function ReqCard({
 						<User size={10} strokeWidth={3} />
 						<span className="font-bold tracking-tight">REQ</span>
 					</div>
-					<span className="text-[11px] truncate font-black flex-1 viewer-name">
-						{song.viewerName ? `@${song.viewerName}` : "@system"}
-					</span>
+					<MarqueeText text={`@${song.viewerName}`} className="viewer-name" />
 				</div>
 			</div>
 		</div>
@@ -260,28 +253,6 @@ function ThumbnailImage({
 	);
 }
 
-function SongTitle({
-	title,
-	titleClass,
-}: {
-	title: string;
-	titleClass: string;
-}) {
-	return (
-		<div className="relative overflow-hidden w-full h-5">
-			<p
-				className={twMerge(
-					"text-[13px] font-extrabold tracking-wide absolute left-0",
-					title.length > 20 ? "marquee-text" : "truncate w-full",
-					titleClass,
-				)}
-			>
-				{title}
-			</p>
-		</div>
-	);
-}
-
 // MAIN ROUTER CARD
 export default function QueueCard({
 	song,
@@ -289,7 +260,7 @@ export default function QueueCard({
 	className,
 	style,
 }: {
-	song: QueueType;
+	song: QueueItem;
 	index: number;
 	className?: string;
 	style?: CSSProperties;
@@ -297,7 +268,7 @@ export default function QueueCard({
 	const thumbnailUrl = `https://img.youtube.com/vi/${song?.videoId}/mqdefault.jpg`;
 	const specialViewers =
 		process.env.NEXT_PUBLIC_SPECIAL_VIEWER?.split(",") || [];
-	const isSViewer = specialViewers.includes(song.viewerName);
+	const isSViewer = specialViewers.includes(song?.viewerName ?? "");
 
 	if (isSViewer) {
 		return (

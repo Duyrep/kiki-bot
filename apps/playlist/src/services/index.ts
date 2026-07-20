@@ -1,4 +1,5 @@
+import getCurrentSong from "./getCurrentSong";
+import getCurrentSongIndex from "./getCurrentSongIndex";
 import getQueue from "./getQueue";
-import getVideoPlaying from "./getVideoPlaying";
 
-export { getQueue, getVideoPlaying };
+export { getCurrentSong, getCurrentSongIndex, getQueue };

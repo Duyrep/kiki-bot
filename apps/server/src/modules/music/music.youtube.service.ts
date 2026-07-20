@@ -12,7 +12,7 @@ import type { EnvironmentVariables } from "@/common/types";
 
 @Injectable()
 export class YoutubeMusicService implements OnModuleInit, OnModuleDestroy {
-	private readonly logger = new Logger("Youtube Music");
+	private readonly logger = new Logger("Youtube Music WebSocket");
 	private wsClient!: WebSocket;
 
 	constructor(
@@ -42,8 +42,12 @@ export class YoutubeMusicService implements OnModuleInit, OnModuleDestroy {
 			}
 		});
 
-		this.wsClient.on("error", (err) => {
-			this.logger.error(err);
+		this.wsClient.on("error", (err: any) => {
+			if (err?.code === "ECONNREFUSED" || err?.cause?.code === "ECONNREFUSED") {
+				this.logger.error("Kết nối thất bại. Vui lòng bật YouTube Music!");
+			} else {
+				this.logger.error(err);
+			}
 		});
 
 		this.wsClient.on("close", () => {

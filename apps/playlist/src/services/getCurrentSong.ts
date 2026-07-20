@@ -1,4 +1,6 @@
-export default async function getQueue() {
+import { Song } from "@/interfaces";
+
+export default async function getCurrentSong() {
 	const response = await fetch(
 		`${process.env.NEXT_PUBLIC_YOUTUBE_MUSIC_API_SERVER}/song`,
 		{
@@ -6,7 +8,7 @@ export default async function getQueue() {
 		},
 	);
 
-	const data = await response.json();
+	const data = (await response.json()) as Song;
 
 	return data;
 }

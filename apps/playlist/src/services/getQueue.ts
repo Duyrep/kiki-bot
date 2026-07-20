@@ -1,4 +1,4 @@
-import { QueueType } from "@/interfaces";
+import { QueueItem } from "@/interfaces";
 
 export default async function getQueue() {
 	const response = await fetch(
@@ -8,7 +8,7 @@ export default async function getQueue() {
 		},
 	);
 
-	const data = (await response.json()) as QueueType[];
+	const data = (await response.json()) as QueueItem[];
 
 	return data;
 }
