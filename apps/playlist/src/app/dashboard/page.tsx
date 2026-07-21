@@ -5,6 +5,7 @@ import { twMerge } from "tailwind-merge";
 import { QueueCard } from "@/components/ui";
 import { useHydratedStore } from "@/hooks/useStore";
 import { useQueueStore } from "@/stores";
+import { QueueOverlayPreview } from "./_preview";
 
 export default function Dashboard() {
 	const currentSong = useHydratedStore(useQueueStore, (s) => s.currentSong);
@@ -29,7 +30,7 @@ export default function Dashboard() {
 		<div className="w-full h-full bg-gray-950 p-4 flex flex-col gap-4 text-white overflow-x-auto">
 			{/* ================= NOW PLAYING HERO SECTION ================= */}
 			<div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
-				<div className="lg:col-span-2 relative group overflow-hidden rounded-2xl border border-rose-500/30 bg-gradient-to-br from-rose-950/40 via-purple-950/20 to-gray-900/80 p-5 backdrop-blur-md shadow-2xl shadow-rose-950/20 transition-all duration-300 hover:border-rose-500/50 flex flex-col justify-between">
+				<div className="lg:col-span-2 relative group overflow-hidden rounded-2xl border border-rose-500/30 bg-linear-to-br from-rose-950/40 via-purple-950/20 to-gray-900/80 p-5 backdrop-blur-md shadow-2xl shadow-rose-950/20 transition-all duration-300 hover:border-rose-500/50 flex flex-col justify-between">
 					{/* Ambient Glow Background Effect */}
 					<div className="absolute -top-12 -left-12 w-48 h-48 bg-rose-500/20 rounded-full blur-3xl pointer-events-none group-hover:bg-rose-500/30 transition-all" />
 
@@ -71,7 +72,7 @@ export default function Dashboard() {
 					</div>
 				</div>
 
-				<div className="flex flex-col justify-between bg-gray-900/60 rounded-2xl border border-gray-800/80 p-4 backdrop-blur-sm relative overflow-hidden h-44 overflow-y-auto">
+				<div className="flex flex-col justify-between bg-gray-900/60 rounded-2xl border border-gray-800/80 p-4 backdrop-blur-sm relative overflow-hidden h-40 overflow-y-auto">
 					<div className="flex items-center justify-between border-b border-gray-800/80 pb-2.5 mb-3">
 						<h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
 							<span className="w-2 h-2 rounded-full bg-cyan-400"></span>
@@ -88,7 +89,7 @@ export default function Dashboard() {
 							<span className="text-gray-400 block mb-1">Special Viewers:</span>
 							<div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
 								{specialViewers.length > 0 ? (
-									specialViewers.map((viewer, idx) => (
+									specialViewers.map((viewer) => (
 										<span
 											key={viewer}
 											className="bg-purple-950/80 text-purple-300 border border-purple-500/30 text-[10px] px-2 py-0.5 rounded-md font-medium"
@@ -146,6 +147,8 @@ export default function Dashboard() {
 				</div>
 			</div>
 			{/* ================= END NOW PLAYING SECTION ================= */}
+
+			<QueueOverlayPreview />
 
 			<div className="flex flex-1 min-h-0 gap-4">
 				<Playlist />

@@ -89,9 +89,6 @@ export default function Page() {
 						animationFillMode: "both",
 					}}
 				>
-					{/* <div className="w-full text-center text-xs absolute z-50 -translate-y-15">
-						{item.id}
-					</div> */}
 					<QueueCard song={item} index={index} />
 				</div>
 			))}
