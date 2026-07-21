@@ -27,14 +27,12 @@ export default function Dashboard() {
 		.filter(Boolean);
 
 	return (
-		<div className="w-full h-full bg-gray-950 p-4 flex flex-col gap-4 text-white overflow-x-auto">
+		<div className="w-full h-full bg-gray-950 p-4 flex flex-col gap-4 text-white overflow-y-auto">
 			{/* ================= NOW PLAYING HERO SECTION ================= */}
 			<div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
 				<div className="lg:col-span-2 relative group overflow-hidden rounded-2xl border border-rose-500/30 bg-linear-to-br from-rose-950/40 via-purple-950/20 to-gray-900/80 p-5 backdrop-blur-md shadow-2xl shadow-rose-950/20 transition-all duration-300 hover:border-rose-500/50 flex flex-col justify-between">
-					{/* Ambient Glow Background Effect */}
 					<div className="absolute -top-12 -left-12 w-48 h-48 bg-rose-500/20 rounded-full blur-3xl pointer-events-none group-hover:bg-rose-500/30 transition-all" />
 
-					{/* Header Status */}
 					<div className="flex items-center justify-between mb-4 relative z-10">
 						<div className="flex items-center gap-2">
 							<span className="relative flex h-3 w-3">
@@ -46,7 +44,6 @@ export default function Dashboard() {
 							</span>
 						</div>
 
-						{/* Equalizer Visualizer Icon */}
 						<div className="flex items-end gap-1 h-4">
 							<span className="w-1 bg-rose-400 rounded-full animate-[bounce_1s_infinite_100ms] h-full" />
 							<span className="w-1 bg-rose-400 rounded-full animate-[bounce_1s_infinite_300ms] h-3" />
@@ -55,14 +52,13 @@ export default function Dashboard() {
 						</div>
 					</div>
 
-					{/* Card Content */}
 					<div className="relative z-10 my-auto">
 						{currentSongData ? (
 							<QueueCard
 								song={currentSongData}
 								index={currentSong?.index ?? 0}
 								className="w-full bg-transparent p-0 border-none shadow-none"
-								width={"w-full"}
+								width="100%"
 							/>
 						) : (
 							<div className="flex items-center justify-center py-8 text-gray-500 text-sm font-medium italic">
@@ -84,7 +80,6 @@ export default function Dashboard() {
 					</div>
 
 					<div className="space-y-2 text-xs font-mono">
-						{/* Special Viewers */}
 						<div className="bg-gray-950/60 p-2 rounded-lg border border-gray-800/50">
 							<span className="text-gray-400 block mb-1">Special Viewers:</span>
 							<div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
@@ -103,7 +98,6 @@ export default function Dashboard() {
 							</div>
 						</div>
 
-						{/* Upcoming Limit */}
 						<div className="flex justify-between items-center bg-gray-950/60 p-2 rounded-lg border border-gray-800/50">
 							<span className="text-gray-400">Upcoming Limit:</span>
 							<span className="text-rose-400 font-bold">
@@ -111,7 +105,6 @@ export default function Dashboard() {
 							</span>
 						</div>
 
-						{/* Backend URL */}
 						<div className="flex justify-between items-center bg-gray-950/60 p-2 rounded-lg border border-gray-800/50 gap-2">
 							<span className="text-gray-400 shrink-0">Backend:</span>
 							<span
@@ -122,7 +115,6 @@ export default function Dashboard() {
 							</span>
 						</div>
 
-						{/* WebSocket URL */}
 						<div className="flex justify-between items-center bg-gray-950/60 p-2 rounded-lg border border-gray-800/50 gap-2">
 							<span className="text-gray-400 shrink-0">WebSocket:</span>
 							<span
@@ -133,7 +125,6 @@ export default function Dashboard() {
 							</span>
 						</div>
 
-						{/* YouTube Music API Server */}
 						<div className="flex justify-between items-center bg-gray-950/60 p-2 rounded-lg border border-gray-800/50 gap-2">
 							<span className="text-gray-400 shrink-0">YT API:</span>
 							<span
@@ -150,7 +141,7 @@ export default function Dashboard() {
 
 			<QueueOverlayPreview />
 
-			<div className="flex flex-1 min-h-0 gap-4">
+			<div className="w-full flex min-h-0 gap-4 flex-1 max-lg:flex-wrap">
 				<Playlist />
 				<UpcomingList />
 				<OrderHistories />
@@ -168,7 +159,7 @@ function Playlist() {
 		currentSong && queue ? queue.at(currentSong.index) : undefined;
 
 	return (
-		<div className="flex flex-col gap-2 w-full rounded-2xl bg-gray-900/40 border border-gray-800 p-4	">
+		<div className="w-full min-w-20 max-lg:max-h-100 flex flex-col gap-2 rounded-2xl bg-gray-900/40 border border-gray-800 p-4">
 			<div className="flex items-center justify-between pb-2 border-b border-gray-800">
 				<h2 className="font-bold text-lg text-slate-200">Danh sách phát</h2>
 				<span className="text-xs bg-gray-800 px-2.5 py-1 rounded-full text-gray-400 font-mono">
@@ -184,7 +175,7 @@ function Playlist() {
 							<div
 								key={`queue-${item.id}`}
 								className={twMerge(
-									"flex items-center gap-3 p-2.5 rounded-xl border animate-fade",
+									"flex items-center gap-3 p-2.5 rounded-xl border animate-fade min-w-0",
 									isCurrent
 										? "bg-rose-950/40 border-rose-500/40 text-rose-200 shadow-lg shadow-rose-950/20"
 										: isUpcoming
@@ -208,8 +199,8 @@ function Playlist() {
 								<QueueCard
 									song={item}
 									index={index}
-									className="w-full bg-transparent p-0 border-none shadow-none"
-									width={"w-full"}
+									className="flex-1 min-w-0 bg-transparent p-0 border-none shadow-none"
+									width="100%"
 								/>
 							</div>
 						);
@@ -231,7 +222,7 @@ function UpcomingList() {
 	const upComingQueue = useHydratedStore(useQueueStore, (s) => s.upComingQueue);
 
 	return (
-		<div className="flex flex-col gap-2 w-full bg-gray-900/50 p-4 rounded-2xl border border-gray-800">
+		<div className="w-full min-w-20 flex flex-col gap-2 bg-gray-900/50 p-4 rounded-2xl border border-gray-800">
 			<div className="flex items-center justify-between pb-2 border-b border-gray-800">
 				<h2 className="font-bold text-lg text-slate-200">Bài sắp tới</h2>
 				<span className="text-xs bg-emerald-800 px-2.5 py-1 rounded-full text-emerald-200 font-mono border border-emerald-600">
@@ -244,7 +235,7 @@ function UpcomingList() {
 						<div
 							key={`upcoming-queue-${item.id}`}
 							className={twMerge(
-								"flex items-center gap-3 p-2.5 rounded-xl border border-emerald-800/60 bg-emerald-950/30 animate-fade",
+								"flex items-center gap-3 p-2.5 rounded-xl border border-emerald-800/60 bg-emerald-950/30 animate-fade min-w-0",
 							)}
 							style={{ animationDelay: `${index * 50}ms` }}
 						>
@@ -254,8 +245,8 @@ function UpcomingList() {
 							<QueueCard
 								song={item}
 								index={item.index}
-								className="w-full bg-transparent p-0 border-none shadow-none"
-								width={"w-full"}
+								className="flex-1 min-w-0 bg-transparent p-0 border-none shadow-none"
+								width="100%"
 							/>
 						</div>
 					))
@@ -282,7 +273,8 @@ function OrderHistories() {
 		currentSong && orders ? orders.at(currentSong.index) : undefined;
 
 	return (
-		<div className="flex flex-col gap-2 w-full rounded-2xl bg-gray-900/40 border border-gray-800 p-4	">
+		// ✅ Thêm flex-1 min-w-0
+		<div className="w-full min-w-20 max-lg:max-h-100 flex flex-col gap-2 rounded-2xl bg-gray-900/40 border border-gray-800 p-4">
 			<div className="flex items-center justify-between pb-2 border-b border-gray-800">
 				<h2 className="font-bold text-lg text-slate-200">Lịch sử yêu cầu</h2>
 				<span className="text-xs bg-gray-800 px-2.5 py-1 rounded-full text-gray-400 font-mono">
@@ -300,7 +292,7 @@ function OrderHistories() {
 							<div
 								key={`order-${item.id}`}
 								className={twMerge(
-									"flex flex-col justify-end gap-1 p-2.5 rounded-xl border animate-fade",
+									"flex flex-col justify-end gap-1 p-2.5 rounded-xl border animate-fade min-w-0",
 									isCurrent
 										? "bg-rose-950/40 border-rose-500/40 text-rose-200 shadow-lg shadow-rose-950/20"
 										: isUpcoming
@@ -309,7 +301,7 @@ function OrderHistories() {
 								)}
 								style={{ animationDelay: `${index * 50}ms` }}
 							>
-								<div className="flex items-center gap-3">
+								<div className="flex items-center gap-3 min-w-0">
 									<span
 										className={twMerge(
 											"text-xs font-mono font-bold text-gray-400 w-8 text-center shrink-0",
@@ -325,8 +317,8 @@ function OrderHistories() {
 									<QueueCard
 										song={song}
 										index={song.index}
-										className="w-full bg-transparent p-0 border-none shadow-none"
-										width={"w-full"}
+										className="flex-1 min-w-0 bg-transparent p-0 border-none shadow-none"
+										width="100%"
 									/>
 								</div>
 								<div className="text-[10px] text-gray-500 font-mono text-right pr-1">

@@ -51,5 +51,10 @@ import Search from "./commands/search";
 // console.log("Gõ 'exit' hoặc 'quit' để dừng chương trình.");
 // startLoop();
 
-new Search().run("duyrep", "yeu lam chi");
-new Search().run("kiki", "come my way");
+// new Search().run("duyrep", "yeu lam chi");
+// new Search().run("kiki", "come my way");
+// new Search().run("duyrep", "yeu lam chi");
+// new Search().run("kiki", "come my way");
+
+// new Search().run("viewer1", "bac phan");
+new Search().run("diciembre_yaa", "come my way");

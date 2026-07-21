@@ -63,7 +63,7 @@ export function QueueOverlayPreview() {
 	}, [currentSong]);
 
 	return (
-		<div className="relative flex flex-col w-full bg-gray-900/80 rounded-2xl border border-gray-800 backdrop-blur-md overflow-hidden shadow-2xl">
+		<div className="relative h-50 flex flex-col w-full bg-gray-900/80 rounded-2xl border border-gray-800 backdrop-blur-md overflow-hidden shadow-2xl">
 			{/* Header Preview Bar */}
 			<div className="flex items-center justify-between px-4 py-3 bg-gray-950/70 border-b border-gray-800">
 				<div className="flex items-center gap-2">

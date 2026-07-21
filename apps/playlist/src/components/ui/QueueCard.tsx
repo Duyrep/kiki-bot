@@ -16,6 +16,7 @@ interface CardProps {
 	style?: CSSProperties;
 }
 
+// 1. COMPONENT SYSTEM
 export function SystemCard({
 	song,
 	index,
@@ -28,7 +29,7 @@ export function SystemCard({
 	return (
 		<div
 			className={twMerge(
-				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden",
+				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden min-w-0",
 				"border backdrop-blur-sm z-0 relative",
 				"system-bg system-border z-0",
 				className,
@@ -50,11 +51,12 @@ export function SystemCard({
 				index={index}
 			/>
 
-			<div className="flex flex-col w-full z-10">
+			{/* ✅ Thêm min-w-0 để chống phình layout */}
+			<div className="flex flex-col w-full min-w-0 z-10">
 				<MarqueeText text={song.title} className="system-song-title" />
 				<MarqueeText text={song.artist} className="system-song-artist" />
-				<div className="flex items-center gap-1 mt-1.5">
-					<div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full system-tag border border-zinc-700/50 scale-95 origin-left">
+				<div className="flex items-center gap-1 mt-1.5 min-w-0">
+					<div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full system-tag border border-zinc-700/50 scale-95 origin-left shrink-0">
 						<Bot size={10} className="opacity-70" strokeWidth={2.5} />
 						<span className="font-bold tracking-tight">SYS</span>
 					</div>
@@ -75,10 +77,25 @@ export function VipCard({
 	className,
 	style,
 }: CardProps) {
+	// ✅ Chuyển vị trí vệt sáng ngẫu nhiên vào useMemo để tránh lỗi Hydration Mismatch
+	const singleSparkleStyle = useMemo(() => {
+		const verticalProp = Math.random() > 0.5 ? "top" : "bottom";
+		const verticalVal = `${(Math.random() * 80).toFixed(1)}%`;
+		const horizontalProp = Math.random() > 0.5 ? "left" : "right";
+		const horizontalVal = `${(Math.random() * 90).toFixed(1)}%`;
+
+		return {
+			[verticalProp]: verticalVal,
+			[horizontalProp]: horizontalVal,
+			animationDuration: `${(Math.random() * 1.5 + 1).toFixed(2)}s`,
+			animationDelay: `${(Math.random() * 1).toFixed(2)}s`,
+		} as CSSProperties;
+	}, []);
+
 	return (
 		<div
 			className={twMerge(
-				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden",
+				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden min-w-0",
 				"border backdrop-blur-sm z-0 relative",
 				"special-viewer-bg ultra-vip-pulse z-0 transition-all duration-300",
 				className,
@@ -133,25 +150,8 @@ export function VipCard({
 				/>
 				<SparkleList count={3} />
 			</div>
-			{(() => {
-				const verticalProp = Math.random() > 0.5 ? "top" : "bottom";
-				const verticalVal = `${(Math.random() * 80).toFixed(1)}%`;
 
-				const horizontalProp = Math.random() > 0.5 ? "left" : "right";
-				const horizontalVal = `${(Math.random() * 90).toFixed(1)}%`;
-
-				return (
-					<div
-						className="vip-sparkle absolute z-50"
-						style={{
-							[verticalProp]: verticalVal,
-							[horizontalProp]: horizontalVal,
-							animationDuration: `${(Math.random() * 1.5 + 1).toFixed(2)}s`,
-							animationDelay: `${(Math.random() * 1).toFixed(2)}s`,
-						}}
-					/>
-				);
-			})()}
+			<div className="vip-sparkle absolute z-50" style={singleSparkleStyle} />
 
 			<ThumbnailBackground thumbnailUrl={thumbnailUrl} />
 			<ThumbnailImage
@@ -160,16 +160,17 @@ export function VipCard({
 				index={index}
 			/>
 
+			{/* ✅ Thêm min-w-0 */}
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
 				<MarqueeText text={song.title} className="special-viewer-song-title" />
 				<MarqueeText
 					text={song.artist}
 					className="special-viewer-song-artist"
 				/>
-				<div className="flex items-center gap-1.5 mt-1.5">
+				<div className="flex items-center gap-1.5 mt-1.5 min-w-0">
 					<div
 						className={twMerge(
-							"flex items-center gap-1 px-1 py-px rounded-full scale-100",
+							"flex items-center gap-1 px-1 py-px rounded-full scale-100 shrink-0",
 							"special-viewer-tag",
 						)}
 					>
@@ -180,11 +181,10 @@ export function VipCard({
 						/>
 						<span className="font-extrabold uppercase tracking-tight">VIP</span>
 					</div>
-					<span className="text-[11px] truncate font-black flex-1 special-viewer-name">
-						{song.viewerName ? `@${song.viewerName}` : "@system"}
-					</span>
+
+					{/* ✅ Đã xóa thẻ span dư thừa, chỉ dùng MarqueeText */}
 					<MarqueeText
-						text={`@${song.viewerName}`}
+						text={`@${song.viewerName || "system"}`}
 						className="special-viewer-name"
 					/>
 				</div>
@@ -206,7 +206,7 @@ export function ReqCard({
 	return (
 		<div
 			className={twMerge(
-				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden",
+				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden min-w-0",
 				"border backdrop-blur-sm z-0 relative",
 				"viewer-bg viewer-border viewer-shadow z-0",
 				className,
@@ -230,13 +230,14 @@ export function ReqCard({
 				index={index}
 			/>
 
+			{/* ✅ Thêm min-w-0 */}
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
 				<MarqueeText text={song.title} className="viewer-song-title" />
 				<MarqueeText text={song.artist} className="viewer-song-artist" />
-				<div className="flex items-center gap-1.5 mt-1.5">
+				<div className="flex items-center gap-1.5 mt-1.5 min-w-0">
 					<div
 						className={twMerge(
-							"flex items-center gap-1 px-1 py-px rounded-full scale-100",
+							"flex items-center gap-1 px-1 py-px rounded-full scale-100 shrink-0",
 							"viewer-tag",
 						)}
 					>

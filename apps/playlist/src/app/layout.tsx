@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className="h-dvh w-full bg-transparent overflow-hidden">
+			<body className="h-dvh w-full bg-transparent overflow-auto">
 				{children}
 			</body>
 		</html>

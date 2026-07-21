@@ -4,6 +4,7 @@
 	"private": true,
 	"scripts": {
 		"start": "turbo run start",
+		"start:wo-tt": "turbo run start --filter=@rep/playlist --filter=@rep/server --filter=@rep/shared",
 		"build": "turbo run build",
 		"dev": "turbo run dev",
 		"dev:wo-tt": "turbo run dev --filter=@rep/playlist --filter=@rep/server --filter=@rep/shared",
