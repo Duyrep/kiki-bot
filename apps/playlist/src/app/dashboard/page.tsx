@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { twMerge } from "tailwind-merge";
 import { QueueCard } from "@/components/ui";
 import { useHydratedStore } from "@/hooks/useStore";
@@ -21,20 +21,132 @@ export default function Dashboard() {
 		subscribeEvents();
 	}, [fetchQueueState, subscribeEvents]);
 
+	const specialViewers = (process.env.NEXT_PUBLIC_SPECIAL_VIEWER || "")
+		.split(",")
+		.filter(Boolean);
+
 	return (
 		<div className="w-full h-full bg-gray-950 p-4 flex flex-col gap-4 text-white overflow-x-auto">
-			<div className="w-full flex justify-center">
-				{currentSongData ? (
-					<QueueCard
-						song={currentSongData}
-						index={currentSong?.index ?? 0}
-						className="w-96"
-						width={"w-full"}
-					/>
-				) : (
-					<SkeletonCard className="w-96" />
-				)}
+			{/* ================= NOW PLAYING HERO SECTION ================= */}
+			<div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+				<div className="lg:col-span-2 relative group overflow-hidden rounded-2xl border border-rose-500/30 bg-gradient-to-br from-rose-950/40 via-purple-950/20 to-gray-900/80 p-5 backdrop-blur-md shadow-2xl shadow-rose-950/20 transition-all duration-300 hover:border-rose-500/50 flex flex-col justify-between">
+					{/* Ambient Glow Background Effect */}
+					<div className="absolute -top-12 -left-12 w-48 h-48 bg-rose-500/20 rounded-full blur-3xl pointer-events-none group-hover:bg-rose-500/30 transition-all" />
+
+					{/* Header Status */}
+					<div className="flex items-center justify-between mb-4 relative z-10">
+						<div className="flex items-center gap-2">
+							<span className="relative flex h-3 w-3">
+								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+								<span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+							</span>
+							<span className="text-xs font-bold uppercase tracking-wider text-rose-300">
+								Đang Phát Trực Tiếp
+							</span>
+						</div>
+
+						{/* Equalizer Visualizer Icon */}
+						<div className="flex items-end gap-1 h-4">
+							<span className="w-1 bg-rose-400 rounded-full animate-[bounce_1s_infinite_100ms] h-full" />
+							<span className="w-1 bg-rose-400 rounded-full animate-[bounce_1s_infinite_300ms] h-3" />
+							<span className="w-1 bg-rose-400 rounded-full animate-[bounce_1s_infinite_200ms] h-full" />
+							<span className="w-1 bg-rose-400 rounded-full animate-[bounce_1s_infinite_400ms] h-2" />
+						</div>
+					</div>
+
+					{/* Card Content */}
+					<div className="relative z-10 my-auto">
+						{currentSongData ? (
+							<QueueCard
+								song={currentSongData}
+								index={currentSong?.index ?? 0}
+								className="w-full bg-transparent p-0 border-none shadow-none"
+								width={"w-full"}
+							/>
+						) : (
+							<div className="flex items-center justify-center py-8 text-gray-500 text-sm font-medium italic">
+								Chưa có bài hát nào đang phát
+							</div>
+						)}
+					</div>
+				</div>
+
+				<div className="flex flex-col justify-between bg-gray-900/60 rounded-2xl border border-gray-800/80 p-4 backdrop-blur-sm relative overflow-hidden h-44 overflow-y-auto">
+					<div className="flex items-center justify-between border-b border-gray-800/80 pb-2.5 mb-3">
+						<h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+							<span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+							Cấu Hình Luồng
+						</h3>
+						<span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+							Active
+						</span>
+					</div>
+
+					<div className="space-y-2 text-xs font-mono">
+						{/* Special Viewers */}
+						<div className="bg-gray-950/60 p-2 rounded-lg border border-gray-800/50">
+							<span className="text-gray-400 block mb-1">Special Viewers:</span>
+							<div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
+								{specialViewers.length > 0 ? (
+									specialViewers.map((viewer, idx) => (
+										<span
+											key={viewer}
+											className="bg-purple-950/80 text-purple-300 border border-purple-500/30 text-[10px] px-2 py-0.5 rounded-md font-medium"
+										>
+											@{viewer}
+										</span>
+									))
+								) : (
+									<span className="text-gray-600 italic">Không có</span>
+								)}
+							</div>
+						</div>
+
+						{/* Upcoming Limit */}
+						<div className="flex justify-between items-center bg-gray-950/60 p-2 rounded-lg border border-gray-800/50">
+							<span className="text-gray-400">Upcoming Limit:</span>
+							<span className="text-rose-400 font-bold">
+								{process.env.NEXT_PUBLIC_UPCOMING_SONGS || "N/A"}
+							</span>
+						</div>
+
+						{/* Backend URL */}
+						<div className="flex justify-between items-center bg-gray-950/60 p-2 rounded-lg border border-gray-800/50 gap-2">
+							<span className="text-gray-400 shrink-0">Backend:</span>
+							<span
+								className="text-blue-400 truncate text-[11px]"
+								title={process.env.NEXT_PUBLIC_BACKEND_URL}
+							>
+								{process.env.NEXT_PUBLIC_BACKEND_URL || "N/A"}
+							</span>
+						</div>
+
+						{/* WebSocket URL */}
+						<div className="flex justify-between items-center bg-gray-950/60 p-2 rounded-lg border border-gray-800/50 gap-2">
+							<span className="text-gray-400 shrink-0">WebSocket:</span>
+							<span
+								className="text-amber-400 truncate text-[11px]"
+								title={process.env.NEXT_PUBLIC_WEBSOCKET_URL}
+							>
+								{process.env.NEXT_PUBLIC_WEBSOCKET_URL || "N/A"}
+							</span>
+						</div>
+
+						{/* YouTube Music API Server */}
+						<div className="flex justify-between items-center bg-gray-950/60 p-2 rounded-lg border border-gray-800/50 gap-2">
+							<span className="text-gray-400 shrink-0">YT API:</span>
+							<span
+								className="text-emerald-400 truncate text-[11px]"
+								title={process.env.NEXT_PUBLIC_YOUTUBE_MUSIC_API_SERVER}
+							>
+								{process.env.NEXT_PUBLIC_YOUTUBE_MUSIC_API_SERVER || "N/A"}
+							</span>
+						</div>
+					</div>
+				</div>
 			</div>
+			{/* ================= END NOW PLAYING SECTION ================= */}
+
 			<div className="flex flex-1 min-h-0 gap-4">
 				<Playlist />
 				<UpcomingList />
@@ -101,9 +213,10 @@ function Playlist() {
 					})
 				) : (
 					<div className="space-y-3">
-						{[...Array(4)].map(() => (
-							<SkeletonCard key={crypto.randomUUID()} />
-						))}
+						<SkeletonCard />
+						<SkeletonCard />
+						<SkeletonCard />
+						<SkeletonCard />
 					</div>
 				)}
 			</div>
@@ -137,7 +250,7 @@ function UpcomingList() {
 							</span>
 							<QueueCard
 								song={item}
-								index={index}
+								index={item.index}
 								className="w-full bg-transparent p-0 border-none shadow-none"
 								width={"w-full"}
 							/>
@@ -145,9 +258,10 @@ function UpcomingList() {
 					))
 				) : (
 					<div className="space-y-3">
-						{[...Array(4)].map(() => (
-							<SkeletonCard key={crypto.randomUUID()} />
-						))}
+						<SkeletonCard />
+						<SkeletonCard />
+						<SkeletonCard />
+						<SkeletonCard />
 					</div>
 				)}
 			</div>
@@ -224,9 +338,10 @@ function OrderHistories() {
 					})
 				) : (
 					<div className="space-y-3">
-						{[...Array(4)].map(() => (
-							<SkeletonCard key={crypto.randomUUID()} />
-						))}
+						<SkeletonCard />
+						<SkeletonCard />
+						<SkeletonCard />
+						<SkeletonCard />
 					</div>
 				)}
 			</div>
@@ -235,19 +350,12 @@ function OrderHistories() {
 }
 
 function SkeletonCard({ className }: { className?: string }) {
-	const [delay, setDelay] = useState<string>("0ms");
-
-	useEffect(() => {
-		setDelay(`${Math.random() * 2}s`);
-	}, []);
-
 	return (
 		<div
 			className={twMerge(
 				"w-full h-20.25 bg-gray-800/50 rounded-xl animate-pulse border border-gray-800/80",
 				className,
 			)}
-			style={{ animationDelay: delay }}
 		/>
 	);
 }

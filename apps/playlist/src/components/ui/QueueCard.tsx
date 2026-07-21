@@ -131,7 +131,7 @@ export function VipCard({
 						animationDelay: "0.5s",
 					}}
 				/>
-				<SparkleList count={10} />
+				<SparkleList count={3} />
 			</div>
 			{(() => {
 				const verticalProp = Math.random() > 0.5 ? "top" : "bottom";
@@ -250,26 +250,21 @@ export function ReqCard({
 	);
 }
 
-// 1. Định nghĩa Props cho Component
 interface SparkleListProps {
-	count?: number; // Số lượng sparkle, mặc định là 5
+	count?: number;
 }
 
-// 2. Định nghĩa kiểu dữ liệu cho từng Sparkle
 interface SparkleItem {
 	id: number;
 	style: CSSProperties;
 }
 
 const SparkleList: React.FC<SparkleListProps> = ({ count = 5 }) => {
-	// Tạo danh sách ngẫu nhiên 1 lần bằng useMemo
 	const sparkles = useMemo<SparkleItem[]>(() => {
 		return Array.from({ length: count }).map((_, index) => {
-			// Chọn ngẫu nhiên top hoặc bottom
 			const verticalProp = Math.random() > 0.5 ? "top" : "bottom";
 			const verticalValue = `${(Math.random() * 80 + 10).toFixed(0)}%`;
 
-			// Chọn ngẫu nhiên left hoặc right
 			const horizontalProp = Math.random() > 0.5 ? "left" : "right";
 			const horizontalValue = `${(Math.random() * 80 + 10).toFixed(0)}%`;
 
