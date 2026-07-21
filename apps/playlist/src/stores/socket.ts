@@ -41,11 +41,15 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 		});
 
 		newSocket.on("connect_error", (error) => {
-			console.error(error);
+			console.warn(error);
 			set({ isConnected: false, isConnecting: false });
 		});
 
 		newSocket.on("disconnect", (reason) => {
+			if (reason === "io server disconnect") {
+				setTimeout(() => newSocket.connect(), 5000);
+				return;
+			}
 			set({
 				socket: undefined,
 				isConnected: false,

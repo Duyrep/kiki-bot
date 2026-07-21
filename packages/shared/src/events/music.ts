@@ -3,4 +3,7 @@ export enum MusicEvents {
 
 	QUEUE_UPDATE = "music.queue.update",
 	TRACK_ADD = "music.track.add",
+
+	ORDER_ADDED = "music.store.order.added",
+	ORDER_REMOVED = "music.store.order.removed",
 }

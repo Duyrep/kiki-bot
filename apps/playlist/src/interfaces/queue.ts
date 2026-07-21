@@ -2,7 +2,7 @@ export interface QueueItem {
 	id: string;
 	videoId: string;
 	title: string;
-	author: string;
+	artist: string;
 	tag?: string;
 	viewerName?: string;
 	selected: boolean;

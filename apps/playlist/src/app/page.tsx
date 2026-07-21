@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { QueueCard } from "@/components/ui";
 import { QueueItem } from "@/interfaces";
-import { useQueueStore } from "@/store/queue";
-import { useSocketStore } from "@/store/socket";
+import { useQueueStore, useSocketStore } from "@/stores";
 
 enum QueueItemRemovePhase {
 	idle = "idle",
@@ -15,10 +14,11 @@ enum QueueItemRemovePhase {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export default function Test() {
+export default function Page() {
 	const currentSong = useQueueStore((state) => state.currentSong);
 	const queue = useQueueStore((state) => state.upComingQueue);
 	const socket = useSocketStore((state) => state.socket);
+	const isSocketReady = useSocketStore((state) => state.isSocketReady);
 
 	const fetchQueueState = useQueueStore((state) => state.fetchQueueState);
 	const fetchQueue = useQueueStore((state) => state.fetchQueue);
@@ -65,8 +65,15 @@ export default function Test() {
 		})();
 	}, [currentSong]);
 
+	if (!isSocketReady())
+		return (
+			<b className="w-full h-full flex justify-center items-center">
+				Chờ xíu...
+			</b>
+		);
+
 	return (
-		<div className="flex overflow-auto gap-4 h-full px-4 scrollbar-thumb-transparent">
+		<div className="flex overflow-auto gap-4 h-full px-4 scrollbar-thumb-transparent scale-200 origin-left">
 			{renderedQueue.map((item, index) => (
 				<div
 					data-state={index === 0 ? removePhase : QueueItemRemovePhase.idle}

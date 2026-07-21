@@ -26,4 +26,14 @@ export class AppGateway {
 	handleMusicVideoChanged(payload: any) {
 		this.server.emit(MusicEvents.VIDEO_CHANGED, payload);
 	}
+
+	@OnEvent(MusicEvents.ORDER_ADDED)
+	handleOrderAdded(payload: any) {
+		this.server.emit(MusicEvents.ORDER_ADDED, payload);
+	}
+
+	@OnEvent(MusicEvents.ORDER_REMOVED)
+	handleOrderRemoved(payload: any) {
+		this.server.emit(MusicEvents.ORDER_REMOVED, payload);
+	}
 }

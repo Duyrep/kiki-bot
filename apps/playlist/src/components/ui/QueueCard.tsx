@@ -1,7 +1,7 @@
 "use client";
 
 import { Bot, Crown, User } from "lucide-react";
-import { CSSProperties } from "react";
+import { CSSProperties, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { QueueItem } from "@/interfaces/queue";
 import MarqueeText from "./MarqueeText";
@@ -10,6 +10,8 @@ interface CardProps {
 	song: QueueItem;
 	index: number;
 	thumbnailUrl: string;
+	width?: string | number;
+	height?: string | number;
 	className?: string;
 	style?: CSSProperties;
 }
@@ -18,18 +20,26 @@ export function SystemCard({
 	song,
 	index,
 	thumbnailUrl,
+	width = 192,
+	height,
 	className,
 	style,
 }: CardProps) {
 	return (
 		<div
 			className={twMerge(
-				"relative flex items-center gap-2.5 w-48 min-w-48 p-2 rounded-lg overflow-hidden",
+				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden",
 				"border backdrop-blur-sm z-0 relative",
 				"system-bg system-border z-0",
 				className,
 			)}
 			style={{
+				width: typeof width === "number" ? `${width}px` : width,
+				height: height
+					? typeof height === "number"
+						? `${height}px`
+						: height
+					: "auto",
 				...style,
 			}}
 		>
@@ -40,9 +50,9 @@ export function SystemCard({
 				index={index}
 			/>
 
-			<div className="flex flex-col w-48 z-10">
+			<div className="flex flex-col w-full z-10">
 				<MarqueeText text={song.title} className="system-song-title" />
-				<MarqueeText text={song.author} className="system-song-author" />
+				<MarqueeText text={song.artist} className="system-song-artist" />
 				<div className="flex items-center gap-1 mt-1.5">
 					<div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full system-tag border border-zinc-700/50 scale-95 origin-left">
 						<Bot size={10} className="opacity-70" strokeWidth={2.5} />
@@ -60,18 +70,26 @@ export function VipCard({
 	song,
 	index,
 	thumbnailUrl,
+	width = 192,
+	height,
 	className,
 	style,
 }: CardProps) {
 	return (
 		<div
 			className={twMerge(
-				"relative flex items-center gap-2.5 w-48 min-w-48 p-2 rounded-lg overflow-hidden",
+				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden",
 				"border backdrop-blur-sm z-0 relative",
 				"special-viewer-bg ultra-vip-pulse z-0 transition-all duration-300",
 				className,
 			)}
 			style={{
+				width: typeof width === "number" ? `${width}px` : width,
+				height: height
+					? typeof height === "number"
+						? `${height}px`
+						: height
+					: "auto",
 				...style,
 			}}
 		>
@@ -113,15 +131,27 @@ export function VipCard({
 						animationDelay: "0.5s",
 					}}
 				/>
+				<SparkleList count={10} />
 			</div>
-			<div
-				className="vip-sparkle top-1.5 right-1.5"
-				style={{ animationDuration: "1.5s" }}
-			/>
-			<div
-				className="vip-sparkle bottom-1.5 left-16"
-				style={{ animationDuration: "2s", animationDelay: "0.5s" }}
-			/>
+			{(() => {
+				const verticalProp = Math.random() > 0.5 ? "top" : "bottom";
+				const verticalVal = `${(Math.random() * 80).toFixed(1)}%`;
+
+				const horizontalProp = Math.random() > 0.5 ? "left" : "right";
+				const horizontalVal = `${(Math.random() * 90).toFixed(1)}%`;
+
+				return (
+					<div
+						className="vip-sparkle absolute z-50"
+						style={{
+							[verticalProp]: verticalVal,
+							[horizontalProp]: horizontalVal,
+							animationDuration: `${(Math.random() * 1.5 + 1).toFixed(2)}s`,
+							animationDelay: `${(Math.random() * 1).toFixed(2)}s`,
+						}}
+					/>
+				);
+			})()}
 
 			<ThumbnailBackground thumbnailUrl={thumbnailUrl} />
 			<ThumbnailImage
@@ -133,8 +163,8 @@ export function VipCard({
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
 				<MarqueeText text={song.title} className="special-viewer-song-title" />
 				<MarqueeText
-					text={song.author}
-					className="special-viewer-song-author"
+					text={song.artist}
+					className="special-viewer-song-artist"
 				/>
 				<div className="flex items-center gap-1.5 mt-1.5">
 					<div
@@ -168,18 +198,26 @@ export function ReqCard({
 	song,
 	index,
 	thumbnailUrl,
+	width = 192,
+	height,
 	className,
 	style,
 }: CardProps) {
 	return (
 		<div
 			className={twMerge(
-				"relative flex items-center gap-2.5 w-48 min-w-48 p-2 rounded-lg overflow-hidden",
+				"relative flex items-center gap-2.5 p-2 rounded-lg overflow-hidden",
 				"border backdrop-blur-sm z-0 relative",
 				"viewer-bg viewer-border viewer-shadow z-0",
 				className,
 			)}
 			style={{
+				width: typeof width === "number" ? `${width}px` : width,
+				height: height
+					? typeof height === "number"
+						? `${height}px`
+						: height
+					: "auto",
 				animationDelay: `${index * 60}ms`,
 				animationFillMode: "both",
 				...style,
@@ -194,7 +232,7 @@ export function ReqCard({
 
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
 				<MarqueeText text={song.title} className="viewer-song-title" />
-				<MarqueeText text={song.author} className="viewer-song-author" />
+				<MarqueeText text={song.artist} className="viewer-song-artist" />
 				<div className="flex items-center gap-1.5 mt-1.5">
 					<div
 						className={twMerge(
@@ -212,11 +250,59 @@ export function ReqCard({
 	);
 }
 
-// --- CÁC SUB-COMPONENT BỔ TRỢ ĐỂ TRÁNH LẶP CODE (DRY) ---
+// 1. Định nghĩa Props cho Component
+interface SparkleListProps {
+	count?: number; // Số lượng sparkle, mặc định là 5
+}
+
+// 2. Định nghĩa kiểu dữ liệu cho từng Sparkle
+interface SparkleItem {
+	id: number;
+	style: CSSProperties;
+}
+
+const SparkleList: React.FC<SparkleListProps> = ({ count = 5 }) => {
+	// Tạo danh sách ngẫu nhiên 1 lần bằng useMemo
+	const sparkles = useMemo<SparkleItem[]>(() => {
+		return Array.from({ length: count }).map((_, index) => {
+			// Chọn ngẫu nhiên top hoặc bottom
+			const verticalProp = Math.random() > 0.5 ? "top" : "bottom";
+			const verticalValue = `${(Math.random() * 80 + 10).toFixed(0)}%`;
+
+			// Chọn ngẫu nhiên left hoặc right
+			const horizontalProp = Math.random() > 0.5 ? "left" : "right";
+			const horizontalValue = `${(Math.random() * 80 + 10).toFixed(0)}%`;
+
+			return {
+				id: index,
+				style: {
+					[verticalProp]: verticalValue,
+					[horizontalProp]: horizontalValue,
+					animationDuration: `${(Math.random() * 1.5 + 1).toFixed(2)}s`,
+					animationDelay: `${(Math.random() * 1).toFixed(2)}s`,
+				} as CSSProperties,
+			};
+		});
+	}, [count]);
+
+	return (
+		<>
+			{sparkles.map((sparkle) => (
+				<div
+					key={sparkle.id}
+					className="vip-sparkle absolute z-50"
+					style={sparkle.style}
+				/>
+			))}
+		</>
+	);
+};
+
+// --- CÁC SUB-COMPONENT BỔ TRỢ ---
 function ThumbnailBackground({ thumbnailUrl }: { thumbnailUrl: string }) {
 	return (
 		<div
-			className="absolute inset-0 -z-10 opacity-5 scale-110 blur-2xl pointer-events-none"
+			className="absolute inset-0 -z-10 opacity-40 scale-125 blur-md mix-blend-overlay pointer-events-none"
 			style={{
 				backgroundImage: `url(${thumbnailUrl})`,
 				backgroundSize: "cover",
@@ -257,17 +343,21 @@ function ThumbnailImage({
 export default function QueueCard({
 	song,
 	index,
+	width,
+	height,
 	className,
 	style,
 }: {
 	song: QueueItem;
 	index: number;
+	width?: string | number;
+	height?: string | number;
 	className?: string;
 	style?: CSSProperties;
 }) {
 	const thumbnailUrl = `https://img.youtube.com/vi/${song?.videoId}/mqdefault.jpg`;
 	const specialViewers =
-		process.env.NEXT_PUBLIC_SPECIAL_VIEWER?.split(",") || [];
+		process.env.NEXT_PUBLIC_SPECIAL_VIEWER?.split(",").filter(Boolean) || [];
 	const isSViewer = specialViewers.includes(song?.viewerName ?? "");
 
 	if (isSViewer) {
@@ -276,6 +366,8 @@ export default function QueueCard({
 				song={song}
 				index={index}
 				thumbnailUrl={thumbnailUrl}
+				width={width}
+				height={height}
 				className={className}
 				style={style}
 			/>
@@ -288,6 +380,8 @@ export default function QueueCard({
 				song={song}
 				index={index}
 				thumbnailUrl={thumbnailUrl}
+				width={width}
+				height={height}
 				className={className}
 				style={style}
 			/>
@@ -299,6 +393,8 @@ export default function QueueCard({
 			song={song}
 			index={index}
 			thumbnailUrl={thumbnailUrl}
+			width={width}
+			height={height}
 			className={className}
 			style={style}
 		/>

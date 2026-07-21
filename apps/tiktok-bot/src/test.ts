@@ -35,9 +35,9 @@ import Search from "./commands/search";
 
 //     try {
 //       console.log(`\n--- Đang chạy: run(${args.map(a => `"${a}"`).join(", ")}) ---`);
-      
+
 //       await searchInstance.run(...args);
-      
+
 //     } catch (error) {
 //       console.error("Đã xảy ra lỗi khi chạy lệnh:", error);
 //     }
@@ -51,12 +51,5 @@ import Search from "./commands/search";
 // console.log("Gõ 'exit' hoặc 'quit' để dừng chương trình.");
 // startLoop();
 
-new Search().run("duyrep", "yeu lam chi")
-new Search().run("kiki", "come my way")
-new Search().run("duyrep", "yeu lam chi")
-new Search().run("kiki", "come my way")
-
-new Search().run("kiki", "come my way")
-new Search().run("viewer1", "come my way")
-new Search().run("viewer2", "come my way")
-// new Search().run("duyrep", "bac phan")
+new Search().run("duyrep", "yeu lam chi");
+new Search().run("kiki", "come my way");

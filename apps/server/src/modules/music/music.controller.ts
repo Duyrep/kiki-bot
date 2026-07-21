@@ -1,10 +1,21 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common";
-import { type AddToQueueDto, InsertPosition } from "./dto/addToQueue.dto";
+import { type AddToQueueDto } from "./dto/addToQueue.dto";
+import { MusicRequestService } from "./music.request.service";
 import { MusicService } from "./music.service";
+import { MusicStore } from "./music.store";
 
 @Controller("music")
 export class MusicController {
-	constructor(private readonly musicService: MusicService) {}
+	constructor(
+		private readonly musicStore: MusicStore,
+		private readonly musicService: MusicService,
+		private readonly musicRequestService: MusicRequestService,
+	) {}
+
+	@Get("song")
+	async getCurrentSong() {
+		return await this.musicService.getCurrentSong();
+	}
 
 	@Get("song/index")
 	async getCurrentSongIndex() {
@@ -19,13 +30,13 @@ export class MusicController {
 		return await this.musicService.getQueue(fromIndex, toIndex);
 	}
 
-	@Get("test")
-	async test() {
-		return this.musicService.viewerOrders;
-	}
-
 	@Post("queue")
 	async addToQueue(@Body() body: AddToQueueDto) {
-		await this.musicService.addSongToQueue3(body);
+		await this.musicRequestService.addSongToQueue(body);
+	}
+
+	@Get("orders")
+	async getOrders() {
+		return await this.musicStore.getOrder();
 	}
 }
