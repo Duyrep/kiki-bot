@@ -161,7 +161,11 @@ export function VipCard({
 			/>
 
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
-				<MarqueeText text={song.title} textClass="special-viewer-song-title" />
+				<MarqueeText
+					text={song.title}
+					className="text-[14px]"
+					textClass="special-viewer-song-title"
+				/>
 				<MarqueeText
 					text={song.artist}
 					className="special-viewer-song-artist"
@@ -178,10 +182,13 @@ export function VipCard({
 							className="text-yellow-200 drop-shadow-[0_0_2px_#fff]"
 							strokeWidth={3}
 						/>
-						<span className="font-extrabold uppercase tracking-tight">VIP</span>
+						<span className="font-extrabold uppercase tracking-tight shadow-2xl shadow-white animate-jump animate-infinite animate-duration-1000 animate-ease-in-out animate-alternate">
+							&#10022;
+						</span>
 					</div>
 					<MarqueeText
 						text={`@${song.viewerName}`}
+						className="text-[10px]"
 						textClass="special-viewer-name"
 					/>
 				</div>

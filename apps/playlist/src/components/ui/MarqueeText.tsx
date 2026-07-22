@@ -51,7 +51,11 @@ export default function MarqueeText({
 			>
 				{text}
 			</p>
-			<div className="whitespace-nowrap text-transparent pointer-events-none select-none">
+			<div
+				className={twMerge(
+					`whitespace-nowrap pointer-events-none select-none text-transparent`,
+				)}
+			>
 				{text}
 			</div>
 		</div>

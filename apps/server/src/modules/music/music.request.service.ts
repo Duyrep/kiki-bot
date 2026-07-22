@@ -24,7 +24,8 @@ export class MusicRequestService {
 	) {}
 
 	async addSongToQueue(body: AddToQueueDto) {
-		const maxSongInQueue = this.configService.get("MAX_SONGS_IN_QUEUE") ?? 500;
+		const maxSongInQueue =
+			this.configService.get("MAX_SONGS_IN_QUEUE") ?? 500000;
 		if (this.musicStore.getOrderLength() >= maxSongInQueue) return;
 
 		const timeWindow = 45 * 1000;
