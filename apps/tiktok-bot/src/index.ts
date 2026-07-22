@@ -64,38 +64,41 @@ connection.on(WebcastEvent.CHAT, async (data) => {
 	const displayId = data.user?.displayId;
 	if (!content || !displayId) return;
 
-	const args = content.split(/ +/);
-	const rawCommand = args.shift();
-	if (!rawCommand) return;
+	const tokens = content.split(/ +/);
 
-	const regexHopLe = /^@+[a-zA-Z0-9_]/;
-	const isValidCommand =
-		commands.some((cmd) => cmd.name === rawCommand.toLowerCase()) ||
-		regexHopLe.test(rawCommand);
+	let command = null;
+	let chatCommand = "";
+	let commandIndex = -1;
 
-	if (!isValidCommand) return;
+	for (let i = 0; i < tokens.length; i++) {
+		const cleanWord = tokens[i]?.replace(/^@+/, "").toLowerCase();
 
-	const chatCommand = rawCommand.replace(/^@+/, "").toLowerCase();
-	const command = commands.find((cmd) => cmd.name === chatCommand);
+		if (!cleanWord) continue;
 
-	if (command) {
-		logger.info(
-			{ context: "TikTokCommand" },
-			`Đang thực thi lệnh '${chatCommand}' từ người dùng @${displayId}`,
-		);
-
-		try {
-			await command.run(...[displayId, ...args]);
-		} catch (cmdError) {
-			logger.error(
-				{
-					context: "TikTokCommand",
-					user: displayId,
-					command: chatCommand,
-					error: cmdError,
-				},
-				`Lỗi khi thực thi lệnh '${chatCommand}'`,
-			);
+		const foundCmd = commands.find((cmd) => cmd.name === cleanWord);
+		if (foundCmd) {
+			command = foundCmd;
+			chatCommand = cleanWord;
+			commandIndex = i;
+			break;
 		}
+	}
+
+	if (!command || commandIndex === -1) return;
+
+	const args = tokens.slice(commandIndex + 1);
+
+	try {
+		command.run(...[displayId, ...args]);
+	} catch (cmdError) {
+		logger.error(
+			{
+				context: "TikTokCommand",
+				user: displayId,
+				command: chatCommand,
+				error: cmdError,
+			},
+			`Lỗi khi thực thi lệnh '${chatCommand}'`,
+		);
 	}
 });

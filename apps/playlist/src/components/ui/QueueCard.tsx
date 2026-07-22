@@ -51,7 +51,6 @@ export function SystemCard({
 				index={index}
 			/>
 
-			{/* ✅ Thêm min-w-0 để chống phình layout */}
 			<div className="flex flex-col w-full min-w-0 z-10">
 				<MarqueeText text={song.title} className="system-song-title" />
 				<MarqueeText text={song.artist} className="system-song-artist" />
@@ -77,7 +76,6 @@ export function VipCard({
 	className,
 	style,
 }: CardProps) {
-	// ✅ Chuyển vị trí vệt sáng ngẫu nhiên vào useMemo để tránh lỗi Hydration Mismatch
 	const singleSparkleStyle = useMemo(() => {
 		const verticalProp = Math.random() > 0.5 ? "top" : "bottom";
 		const verticalVal = `${(Math.random() * 80).toFixed(1)}%`;
@@ -148,7 +146,9 @@ export function VipCard({
 						animationDelay: "0.5s",
 					}}
 				/>
-				<SparkleList count={3} />
+				<SparkleList
+					count={Number(process.env.NEXT_PUBLIC_STARS_FOR_SPECIAL_VIEWER) ?? 5}
+				/>
 			</div>
 
 			<div className="vip-sparkle absolute z-50" style={singleSparkleStyle} />
@@ -160,9 +160,8 @@ export function VipCard({
 				index={index}
 			/>
 
-			{/* ✅ Thêm min-w-0 */}
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
-				<MarqueeText text={song.title} className="special-viewer-song-title" />
+				<MarqueeText text={song.title} textClass="special-viewer-song-title" />
 				<MarqueeText
 					text={song.artist}
 					className="special-viewer-song-artist"
@@ -181,11 +180,9 @@ export function VipCard({
 						/>
 						<span className="font-extrabold uppercase tracking-tight">VIP</span>
 					</div>
-
-					{/* ✅ Đã xóa thẻ span dư thừa, chỉ dùng MarqueeText */}
 					<MarqueeText
-						text={`@${song.viewerName || "system"}`}
-						className="special-viewer-name"
+						text={`@${song.viewerName}`}
+						textClass="special-viewer-name"
 					/>
 				</div>
 			</div>
@@ -230,7 +227,6 @@ export function ReqCard({
 				index={index}
 			/>
 
-			{/* ✅ Thêm min-w-0 */}
 			<div className="flex flex-col grow min-w-0 z-10 gap-0.5">
 				<MarqueeText text={song.title} className="viewer-song-title" />
 				<MarqueeText text={song.artist} className="viewer-song-artist" />

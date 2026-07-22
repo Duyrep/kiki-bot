@@ -67,13 +67,13 @@ export default function Page() {
 
 	if (!isSocketReady())
 		return (
-			<b className="w-full h-full flex justify-center items-center">
+			<b className="w-full h-full flex items-center text-gray-500 pl-4">
 				Chờ xíu...
 			</b>
 		);
 
 	return (
-		<div className="flex overflow-auto gap-4 h-full px-4 scrollbar-thumb-transparent scale-200 origin-left">
+		<div className="w-full flex overflow-auto gap-4 h-full px-4 scrollbar-thumb-transparent scale-200 origin-left ">
 			{renderedQueue.map((item, index) => (
 				<div
 					data-state={index === 0 ? removePhase : QueueItemRemovePhase.idle}

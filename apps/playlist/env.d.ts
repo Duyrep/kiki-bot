@@ -7,5 +7,7 @@ declare namespace NodeJS {
 		NEXT_PUBLIC_BACKEND_URL: string;
 		NEXT_PUBLIC_WEBSOCKET_URL: string;
 		NEXT_PUBLIC_YOUTUBE_MUSIC_API_SERVER: string;
+
+		NEXT_PUBLIC_STARS_FOR_SPECIAL_VIEWER: string;
 	}
 }

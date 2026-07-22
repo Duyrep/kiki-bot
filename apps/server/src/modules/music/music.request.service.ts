@@ -81,7 +81,7 @@ export class MusicRequestService {
 			youtubeItemId = queue.at(toIndex)?.id ?? "";
 		}
 
-		console.log(`Vừa thêm nhạc của ${body.viewerName}`);
+		this.logger.log(`Vừa thêm nhạc của ${body.viewerName}`);
 
 		this.musicStore.addOrder({
 			id: youtubeItemId,
