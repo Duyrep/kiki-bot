@@ -160,7 +160,8 @@ body {
 	);
 	pointer-events: none;
 	animation: sparkleAnimBlue 2s ease-in-out infinite;
-	filter: drop-shadow(0 0 2px #00ffff);
+	filter: drop-shadow(0 0 1px #ffffff) drop-shadow(0 0 4px #00ffff)
+		drop-shadow(0 0 8px rgba(0, 255, 255, 0.6));
 }
 
 /* ==========================================

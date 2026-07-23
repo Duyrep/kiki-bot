@@ -121,30 +121,11 @@ export function VipCard({
 			<div className="absolute inset-0 -z-20 pointer-events-none opacity-30 special-viewer-aurora mix-blend-lighten" />
 			<div className="vip-sweep-line" style={{ animationDelay: "0s" }} />
 			<div
-				className="vip-sweep-line"
-				style={{ animationDelay: "2s", width: "25px" }}
+				className="vip-sweep-line -left-5"
+				style={{ animationDelay: "5s", width: "25px" }}
 			/>
 			<div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none opacity-80">
-				<div
-					className="vip-particle w-1.5 h-1.5 left-[15%]"
-					style={{ animationDuration: "3s", background: "#00ffff" }}
-				/>
-				<div
-					className="vip-particle w-1 h-1 left-[55%]"
-					style={{
-						animationDuration: "4s",
-						background: "#007fff",
-						animationDelay: "1s",
-					}}
-				/>
-				<div
-					className="vip-particle w-2.5 h-2.5 left-[85%]"
-					style={{
-						animationDuration: "2.5s",
-						background: "#00ff66",
-						animationDelay: "0.5s",
-					}}
-				/>
+				<ParticleList />
 				<SparkleList
 					count={Number(process.env.NEXT_PUBLIC_STARS_FOR_SPECIAL_VIEWER) ?? 5}
 				/>
@@ -289,6 +270,72 @@ const SparkleList: React.FC<SparkleListProps> = ({ count = 5 }) => {
 					key={sparkle.id}
 					className="vip-sparkle absolute z-50"
 					style={sparkle.style}
+				/>
+			))}
+		</>
+	);
+};
+
+interface ParticleListProps {
+	count?: number;
+	animationClassName?: string;
+}
+
+interface ParticleItem {
+	id: number;
+	className: string;
+	style: CSSProperties;
+}
+
+const PARTICLE_DATA = [
+	{ color: "#00ffff", size: "w-1.5 h-1.5" },
+	{ color: "#007fff", size: "w-1 h-1" },
+	{ color: "#00ff66", size: "w-2.5 h-2.5" },
+	{ color: "#3b82f6", size: "w-2 h-2" },
+	{ color: "#a855f7", size: "w-1 h-1" },
+];
+
+export const ParticleList: React.FC<ParticleListProps> = ({
+	count = 10,
+	animationClassName = "vip-particle",
+}) => {
+	const particles = useMemo<ParticleItem[]>(() => {
+		return Array.from({ length: count }).map((_, index) => {
+			const sample =
+				PARTICLE_DATA[Math.floor(Math.random() * PARTICLE_DATA.length)];
+
+			const verticalProp = Math.random() > 0.5 ? "top" : "bottom";
+			const horizontalProp = Math.random() > 0.5 ? "left" : "right";
+
+			const verticalValue = `${(Math.random() * 90 + 5).toFixed(0)}%`;
+			const horizontalValue = `${(Math.random() * 90 + 5).toFixed(0)}%`;
+
+			const duration = `${(Math.random() * 2.5 + 1.5).toFixed(2)}s`;
+			const delay = `${(Math.random() * 2).toFixed(2)}s`;
+
+			return {
+				id: index,
+				className: `${animationClassName} absolute z-50 ${sample.size}`,
+				style: {
+					[verticalProp]: verticalValue,
+					[horizontalProp]: horizontalValue,
+					background: sample.color,
+					animationDuration: duration,
+					animationDelay: delay,
+					borderRadius: "50%",
+					pointerEvents: "none",
+				} as CSSProperties,
+			};
+		});
+	}, [count, animationClassName]);
+
+	return (
+		<>
+			{particles.map((particle) => (
+				<div
+					key={particle.id}
+					className={particle.className}
+					style={particle.style}
 				/>
 			))}
 		</>

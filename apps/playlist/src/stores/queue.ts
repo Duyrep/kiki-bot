@@ -56,7 +56,6 @@ export const useQueueStore = create<QueueState>()(
 
 			fetchOrders: async () => {
 				const orders = await getOrders();
-				console.log(orders);
 				set({ orders });
 			},
 

@@ -6,13 +6,11 @@ async function testSearchCommand() {
 
 	console.log("=== TEST 1: Kiểm tra Rate Limit (Gửi 3 request liên tiếp) ===");
 
-	// Gọi 3 lần liên tiếp để trigger Rate Limit (Status 429)
 	for (let i = 1; i <= 3; i++) {
 		console.log(`\n--- Lần gọi ${i} ---`);
 		try {
 			await search.run(userId, "Em Của Ngày Hôm Qua");
 		} catch (error: any) {
-			// Vì bạn đã handle log sẵn trong command, catch này giúp bạn bắt status 429 nếu throw Error
 			if (error?.status === 429 || error?.statusCode === 429) {
 				console.log(`[PASS] Đã dính Rate Limit 429 ở lần gọi thứ ${i}!`);
 			} else {
@@ -49,4 +47,7 @@ async function testSearchCommand() {
 }
 
 // Chạy test
-testSearchCommand();
+// testSearchCommand();
+
+new Search().run("kiki", "bac phan");
+new Search().run("duyrep", "come my way");
