@@ -113,7 +113,7 @@ export class MusicRequestService {
 
 	private async waitForQueueUpdate(
 		initialQueue: QueueItem[],
-		maxAttempts: number = 10,
+		maxAttempts: number = 50,
 		delayMs: number = 300,
 	) {
 		const delay = (ms: number) =>
