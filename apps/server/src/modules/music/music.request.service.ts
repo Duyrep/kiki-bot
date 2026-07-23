@@ -1,4 +1,10 @@
-import { Injectable, Logger } from "@nestjs/common";
+import {
+	HttpException,
+	HttpStatus,
+	Injectable,
+	Logger,
+	NotFoundException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Interval } from "@nestjs/schedule";
@@ -24,9 +30,8 @@ export class MusicRequestService {
 	) {}
 
 	async addSongToQueue(body: AddToQueueDto) {
-		const maxSongInQueue =
-			this.configService.get("MAX_SONGS_IN_QUEUE") ?? 500000;
-		if (this.musicStore.getOrderLength() >= maxSongInQueue) return;
+		this.logger.log(`Đang thêm bài ${body.videoId} của ${body.viewerName}`);
+		const start = performance.now();
 
 		const timeWindow = 45 * 1000;
 		const now = Date.now();
@@ -39,7 +44,11 @@ export class MusicRequestService {
 			);
 
 		if (recentOrdersByUser.length >= 2) {
-			return;
+			this.logger.log(`Thêm bài thất bại rồi check log của bot tiktok đi`);
+			throw new HttpException(
+				`Bạn @${body.viewerName} thêm nhiều bài nhạc và nhanh quá 45 giây`,
+				HttpStatus.TOO_MANY_REQUESTS,
+			);
 		}
 
 		const currentSongIndex = await this.musicService.getCurrentSongIndex();
@@ -55,34 +64,40 @@ export class MusicRequestService {
 		let youtubeItemId = queue.at(currentSongIndex + 1)?.id ?? "";
 
 		if (this.musicStore.getOrderLength() > 0) {
-			let queue = await this.musicService.getQueue(
-				currentSongIndex + 1,
-				maxSongInQueue + 1,
-			);
+			let queue = await this.musicService.getQueue(currentSongIndex + 1);
 
 			const fromIndex = currentSongIndex + 1;
 
 			const viewerQueue = queue.filter((v) => v.tag === "viewer");
 			const toIndex = viewerQueue.at(-1)?.index;
 
-			if (!fromIndex || !toIndex) return;
+			if (fromIndex === undefined || toIndex === undefined) {
+				const id = queue.at(0)?.id;
+				if (!id) {
+					this.logger.log(`Thêm bài thất bại rồi check log của bot tiktok đi`);
+					throw new NotFoundException("Có cái lỗi gì á. Ai bt?");
+				}
 
-			const _queue = await this.musicService.getQueue();
-			await fetch(
-				`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
-				{
-					method: "PATCH",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ toIndex }),
-				},
-			);
-			await this.waitForQueueUpdate(_queue);
+				youtubeItemId = id;
+			} else {
+				const _queue = await this.musicService.getQueue();
+				await fetch(
+					`${this.configService.getOrThrow("YOUTUBE_MUSIC_API_SERVER")}/queue/${fromIndex}`,
+					{
+						method: "PATCH",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ toIndex }),
+					},
+				);
+				await this.waitForQueueUpdate(_queue);
 
-			queue = await this.musicService.getQueue();
-			youtubeItemId = queue.at(toIndex)?.id ?? "";
+				queue = await this.musicService.getQueue();
+				youtubeItemId = queue.at(toIndex)?.id ?? "";
+			}
 		}
 
-		this.logger.log(`Vừa thêm nhạc của ${body.viewerName}`);
+		const end = performance.now();
+		const duration = end - start;
 
 		this.musicStore.addOrder({
 			id: youtubeItemId,
@@ -90,6 +105,10 @@ export class MusicRequestService {
 			viewerName: body.viewerName,
 			createdAt: Date.now(),
 		});
+
+		this.logger.log(
+			`Vừa thêm bài ${body.videoId} của ${body.viewerName} trong ${duration > 1000 ? `${(duration / 1000).toFixed(1)}s` : `${duration.toFixed(1)}ms`}`,
+		);
 	}
 
 	private async waitForQueueUpdate(

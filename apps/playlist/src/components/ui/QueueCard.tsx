@@ -57,7 +57,6 @@ export function SystemCard({
 				<div className="flex items-center gap-1 mt-1.5 min-w-0">
 					<div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full system-tag border border-zinc-700/50 scale-95 origin-left shrink-0">
 						<Bot size={10} className="opacity-70" strokeWidth={2.5} />
-						<span className="font-bold tracking-tight">SYS</span>
 					</div>
 					<MarqueeText text="@system" className="system-name" />
 				</div>
@@ -245,7 +244,6 @@ export function ReqCard({
 						)}
 					>
 						<User size={10} strokeWidth={3} />
-						<span className="font-bold tracking-tight">REQ</span>
 					</div>
 					<MarqueeText text={`@${song.viewerName}`} className="viewer-name" />
 				</div>
@@ -331,9 +329,6 @@ function ThumbnailImage({
 						"https://placehold.co/100x100/1e1e2e/ffffff?text=♫";
 				}}
 			/>
-			<div className="absolute top-0 left-0 bg-black/85 text-white text-[9px] font-black px-1.5 rounded-br-sm shadow-md border-r border-b border-white/10">
-				#{index + 1}
-			</div>
 		</div>
 	);
 }

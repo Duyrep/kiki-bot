@@ -28,6 +28,7 @@ export default class Search extends Command implements Command {
 		const query = args.slice(1).join(" ");
 
 		if (!query || !username) return;
+		const start = performance.now();
 
 		try {
 			const searchResponse = await fetch(
@@ -43,7 +44,7 @@ export default class Search extends Command implements Command {
 
 			if (!searchResponse.ok)
 				throw new Error(
-					`[searchResponse] ${searchResponse.status} ${searchResponse.statusText}`,
+					`${searchResponse.status} ${searchResponse.statusText}`,
 				);
 
 			const data = (await searchResponse.json()) as SearchResponse;
@@ -67,21 +68,31 @@ export default class Search extends Command implements Command {
 				},
 			);
 
-			if (!queueResponse.ok)
-				throw new Error(
-					`[queueResponse] ${queueResponse.status} ${queueResponse.statusText}`,
+			const end = performance.now();
+			const duration = end - start;
+
+			if (!queueResponse.ok) {
+				logger.error(
+					{
+						context: "SearchCommand",
+					},
+					`${((await queueResponse.json()) as { message: string }).message} (${duration > 1000 ? `${(duration / 1000).toFixed(2)}s` : `${duration.toFixed(1)}ms`}). Bạn ấy muốn thêm bài ${songInfo.songAndArtist}`,
 				);
+				return;
+			}
 
 			logger.info(
 				{
 					context: "SearchCommand",
 				},
-				`@${username} đã thêm thành công bài hát: ${songInfo.songAndArtist}`,
+				`Đã thêm bài ${songInfo.songAndArtist} của @${username} trong ${duration > 1000 ? `${(duration / 1000).toFixed(2)}s` : `${duration.toFixed(1)}ms`}`,
 			);
 		} catch (e) {
+			const end = performance.now();
+			const duration = end - start;
 			logger.error(
-				{ context: "SearchCommand", error: e },
-				`Lỗi khi xử lý yêu cầu tìm kiếm của @${username}`,
+				{ context: "SearchCommand" },
+				`Lỗi khi xử lý yêu cầu tìm kiếm của @${username} \n${e} \n ${duration > 1000 ? `${(duration / 1000).toFixed(2)}s` : `${duration.toFixed(1)}ms`}`,
 			);
 		}
 	}

@@ -14,9 +14,8 @@ if (isDevelopment) {
 			colorizeObjects: true,
 			levelFirst: true,
 			translateTime: "mm/dd/yyyy, h:MM:ss TT",
-			ignore: "pid,hostname,time,context",
-			messageFormat:
-				"\x1b[32m[BOT]\x1b[0m {pid}  - {time}     {level} \x1b[33m[{context}]\x1b[0m {msg}",
+			ignore: "hostname,context",
+			messageFormat: "\x1b[33m[{context}]\x1b[0m {msg}",
 			customColors:
 				"trace:magenta,debug:blue,info:green,warn:yellow,error:red,fatal:bgRed,white",
 		},
