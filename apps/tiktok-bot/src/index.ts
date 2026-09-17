@@ -12,7 +12,6 @@ if (!tiktoryOverlayUrl) {
   process.exit(1);
 }
 
-// Khẳng định chắc chắn biến tồn tại để giải quyết lỗi Type 'undefined' tại page.goto
 const targetUrl: string = tiktoryOverlayUrl;
 
 interface IncomingChatMessage {
@@ -73,7 +72,6 @@ async function handleChatMessage(data: IncomingChatMessage) {
   }
 }
 
-// Đoạn mã chạy trong browser context được truyền dưới dạng string để tránh xung đột lib DOM của Node.js
 const browserObserverScript = `
 (() => {
   const TARGET_CHAT_ATTR = '[data-overlay-item-type="CHAT"]';
@@ -165,12 +163,10 @@ async function startConnection(): Promise<void> {
     context = await browser.newContext();
     page = await context.newPage();
 
-    // Expose callback từ Browser về Node.js
     await page.exposeFunction("onLiveChatMessage", (msg: IncomingChatMessage) => {
       handleChatMessage(msg);
     });
 
-    // Tiêm script string vào trang
     await page.addInitScript(browserObserverScript);
 
     page.on("close", () => {
