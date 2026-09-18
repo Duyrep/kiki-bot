@@ -23,6 +23,7 @@ interface IncomingChatMessage {
 const MAX_RETRIES = 5;
 const RETRY_DELAY = 5000;
 let retryCount = 0;
+let isShuttingDown = false;
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
@@ -41,7 +42,6 @@ async function handleChatMessage(data: IncomingChatMessage) {
 
   for (let i = 0; i < tokens.length; i++) {
     const cleanWord = tokens[i]?.replace(/^@+/, "").toLowerCase();
-
     if (!cleanWord) continue;
 
     const foundCmd = commands.find((cmd) => cmd.name === cleanWord);
@@ -142,17 +142,38 @@ const browserObserverScript = `
 })();
 `;
 
+async function cleanupBrowser(): Promise<void> {
+  try {
+    if (page && !page.isClosed()) {
+      page.removeAllListeners();
+      await page.close().catch(() => {});
+    }
+    if (context) {
+      await context.close().catch(() => {});
+    }
+    if (browser && browser.isConnected()) {
+      await browser.close().catch(() => {});
+    }
+  } catch (err) {
+    logger.warn({ context: "TikTokConnection", error: err }, "Lỗi nhẹ khi cleanup browser");
+  } finally {
+    page = null;
+    context = null;
+    browser = null;
+  }
+}
+
 async function startConnection(): Promise<void> {
+  if (isShuttingDown) return;
+
+  await cleanupBrowser();
+
   try {
     if (retryCount === 0) {
       logger.info(
         { context: "TikTokConnection" },
         "Đang khởi chạy trình duyệt kết nối tới Tiktory...",
       );
-    }
-
-    if (browser) {
-      await browser.close().catch(() => {});
     }
 
     browser = await chromium.launch({
@@ -170,12 +191,14 @@ async function startConnection(): Promise<void> {
     await page.addInitScript(browserObserverScript);
 
     page.on("close", () => {
-      logger.warn({ context: "TikTokConnection" }, "Trang web overlay bị đóng.");
+      if (isShuttingDown) return;
+      logger.warn({ context: "TikTokConnection" }, "Trang web overlay bị đóng. Đang thử kết nối lại...");
       startConnection();
     });
 
     page.on("crash", () => {
-      logger.error({ context: "TikTokConnection" }, "Trang web overlay bị crash.");
+      if (isShuttingDown) return;
+      logger.error({ context: "TikTokConnection" }, "Trang web overlay bị crash. Đang thử kết nối lại...");
       startConnection();
     });
 
@@ -187,6 +210,10 @@ async function startConnection(): Promise<void> {
     );
     retryCount = 0;
   } catch (err) {
+    await cleanupBrowser();
+
+    if (isShuttingDown) return;
+
     retryCount++;
     logger.error(
       {
@@ -211,9 +238,10 @@ async function startConnection(): Promise<void> {
 }
 
 const handleExit = async () => {
-  if (browser) {
-    await browser.close().catch(() => {});
-  }
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  logger.info({ context: "TikTokConnection" }, "Đang đóng Chromium và thoát ứng dụng...");
+  await cleanupBrowser();
   process.exit(0);
 };
 
