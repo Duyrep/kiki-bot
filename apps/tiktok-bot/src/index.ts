@@ -72,11 +72,14 @@ async function handleChatMessage(data: IncomingChatMessage) {
   }
 }
 
+// Observer tối ưu: kiểm tra trực tiếp trạng thái readyState và gom gọn truy vấn DOM
 const browserObserverScript = `
 (() => {
   const TARGET_CHAT_ATTR = '[data-overlay-item-type="CHAT"]';
 
   function extractChatData(chatItemEl) {
+    if (!chatItemEl || !window.onLiveChatMessage) return;
+
     const spans = chatItemEl.querySelectorAll("span");
     if (spans.length >= 2) {
       const username = spans[0]?.textContent?.trim() || "";
@@ -112,33 +115,44 @@ const browserObserverScript = `
     }
   }
 
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type !== "childList") continue;
+  function initObserver() {
+    const targetRoot = document.body || document.documentElement;
+    if (!targetRoot) return;
 
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType !== Node.ELEMENT_NODE) return;
-        const el = node;
+    const observer = new MutationObserver((mutations) => {
+      for (let i = 0; i < mutations.length; i++) {
+        const mutation = mutations[i];
+        if (mutation.type !== "childList") continue;
 
-        const isInsideChat = el.closest(TARGET_CHAT_ATTR);
-        if (!isInsideChat) return;
+        const nodes = mutation.addedNodes;
+        for (let j = 0; j < nodes.length; j++) {
+          const node = nodes[j];
+          if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
-        if (el.querySelector("img") || el.tagName.toLowerCase() === "img") {
-          const chatRow = el.querySelector("img") ? el : el.parentElement;
-          if (chatRow) {
-            extractChatData(chatRow);
+          const el = node;
+          if (el.matches && el.matches(TARGET_CHAT_ATTR)) {
+            extractChatData(el);
+          } else if (el.closest) {
+            const chatRow = el.closest(TARGET_CHAT_ATTR);
+            if (chatRow) {
+              extractChatData(chatRow);
+            }
           }
         }
-      });
-    }
-  });
+      }
+    });
 
-  window.addEventListener("DOMContentLoaded", () => {
-    observer.observe(document.documentElement, {
+    observer.observe(targetRoot, {
       childList: true,
       subtree: true,
     });
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initObserver, { once: true });
+  } else {
+    initObserver();
+  }
 })();
 `;
 
@@ -176,18 +190,53 @@ async function startConnection(): Promise<void> {
       );
     }
 
+    // Tối ưu flags khởi chạy cho Windows
     browser = await chromium.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+      args: [
+        // Tắt GPU và DirectWrite rendering trên Windows
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        // Tắt các background processes không cần thiết
+        "--disable-background-networking",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-breakpad",
+        "--disable-component-update",
+        "--disable-domain-reliability",
+        "--disable-extensions",
+        "--disable-features=AudioServiceOutOfProcess,IsolateOrigins,site-per-process",
+        "--disable-ipc-flooding-protection",
+        "--disable-renderer-backgrounding",
+        "--disable-sync",
+        // Tắt âm thanh
+        "--mute-audio",
+      ],
     });
 
-    context = await browser.newContext();
+    context = await browser.newContext({
+      // Giảm độ phân giải viewport để Chromium tốn ít RAM/CPU dựng DOM
+      viewport: { width: 800, height: 600 },
+      deviceScaleFactor: 1,
+    });
+
     page = await context.newPage();
 
+    // Chặn request hình ảnh, media và phông chữ nhằm loại bỏ nghẽn I/O trên Windows
+    await page.route("**/*", (route) => {
+      const type = route.request().resourceType();
+      if (type === "image" || type === "media" || type === "font") {
+        return route.abort();
+      }
+      return route.continue();
+    });
+
+    // Expose hàm nhận message từ DOM
     await page.exposeFunction("onLiveChatMessage", (msg: IncomingChatMessage) => {
       handleChatMessage(msg);
     });
 
+    // Tiêm observer trước khi load trang
     await page.addInitScript(browserObserverScript);
 
     page.on("close", () => {
@@ -202,7 +251,11 @@ async function startConnection(): Promise<void> {
       startConnection();
     });
 
-    await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
+    // Dùng domcontentloaded thay vì load/networkidle để vào trạng thái lắng nghe ngay
+    await page.goto(targetUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
 
     logger.info(
       { context: "TikTokConnection" },
