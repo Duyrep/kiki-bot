@@ -34,6 +34,11 @@ async function handleChatMessage(data: IncomingChatMessage) {
   const displayId = data?.displayId?.trim();
   if (!content || !displayId) return;
 
+  logger.info(
+    { context: "TikTokChatReceived" },
+    `[${displayId}]: "${content}"`,
+  );
+
   const tokens = content.split(/ +/);
 
   let command = null;
@@ -72,46 +77,68 @@ async function handleChatMessage(data: IncomingChatMessage) {
   }
 }
 
-// Observer tối ưu: kiểm tra trực tiếp trạng thái readyState và gom gọn truy vấn DOM
 const browserObserverScript = `
 (() => {
   const TARGET_CHAT_ATTR = '[data-overlay-item-type="CHAT"]';
 
+  function describeNode(node) {
+    if (!node) return "[Null/Undefined]";
+    const rawContent = node.textContent ? node.textContent.replace(/\\s+/g, " ").trim() : "";
+    const contentPreview = rawContent ? (rawContent.length > 60 ? rawContent.slice(0, 60) + "..." : rawContent) : "";
+    const contentStr = contentPreview ? \` | Content: "\${contentPreview}"\` : " | [No text content]";
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return \`[Text/Comment]\${contentStr}\`;
+    }
+
+    const tag = node.tagName.toLowerCase();
+    const id = node.id ? \`#\${node.id}\` : "";
+    const classes = node.className && typeof node.className === "string" && node.className.trim()
+      ? \`.\${node.className.trim().split(/\\s+/).join(".")}\` 
+      : "";
+    const chatAttr = node.getAttribute("data-overlay-item-type") 
+      ? \`[data-overlay-item-type="\${node.getAttribute("data-overlay-item-type")}"]\` 
+      : "";
+
+    return \`<\${tag}\${id}\${classes}\${chatAttr}>\${contentStr}\`;
+  }
+
   function extractChatData(chatItemEl) {
     if (!chatItemEl || !window.onLiveChatMessage) return;
 
+    let username = "";
+    let comment = "";
+    let avatarUrl = "";
+
+    // Cách 1: Bóc qua các thẻ span con trực tiếp bên trong node này
     const spans = chatItemEl.querySelectorAll("span");
     if (spans.length >= 2) {
-      const username = spans[0]?.textContent?.trim() || "";
-      const comment = spans[1]?.textContent?.trim() || "";
-      const avatarEl = chatItemEl.querySelector("img");
-      const avatarUrl = avatarEl?.getAttribute("src") || "";
+      username = spans[0]?.textContent?.trim() || "";
+      // Lấy toàn bộ các span phía sau ghép lại để tránh comment dài bị chia cắt
+      comment = Array.from(spans).slice(1).map(s => s.textContent?.trim()).filter(Boolean).join(" ");
+    }
 
-      if (username && comment) {
-        window.onLiveChatMessage({
-          displayId: username,
-          content: comment,
-          avatarUrl,
-        });
-        return;
+    // Cách 2: Parse định dạng text phẳng "TênNgườiDùng:ki!p nội dung bài hát"
+    if (!comment || !username) {
+      const fullText = chatItemEl.textContent?.trim() || "";
+      const colonIndex = fullText.indexOf(":");
+      if (colonIndex !== -1) {
+        username = fullText.slice(0, colonIndex).trim();
+        comment = fullText.slice(colonIndex + 1).trim();
       }
     }
 
-    const img = chatItemEl.querySelector("img[alt]");
-    if (img) {
-      const username = img.getAttribute("alt") || "";
-      const fullText = chatItemEl.textContent?.trim() || "";
-      const comment = fullText.startsWith(username)
-        ? fullText.slice(username.length).trim()
-        : fullText;
+    const avatarEl = chatItemEl.querySelector("img");
+    if (avatarEl) {
+      avatarUrl = avatarEl.getAttribute("src") || "";
+    }
 
-      if (username && comment) {
-        window.onLiveChatMessage({
-          displayId: username,
-          content: comment,
-          avatarUrl: img.getAttribute("src") || "",
-        });
-      }
+    if (username && comment) {
+      window.onLiveChatMessage({
+        displayId: username,
+        content: comment,
+        avatarUrl,
+      });
     }
   }
 
@@ -124,19 +151,41 @@ const browserObserverScript = `
         const mutation = mutations[i];
         if (mutation.type !== "childList") continue;
 
+        if (mutation.addedNodes.length > 0) {
+          for (let j = 0; j < mutation.addedNodes.length; j++) {
+            console.log("[DOM + THÊM]:", describeNode(mutation.addedNodes[j]));
+          }
+        }
+
+        if (mutation.removedNodes.length > 0) {
+          for (let k = 0; k < mutation.removedNodes.length; k++) {
+            console.log("[DOM - XÓA]:", describeNode(mutation.removedNodes[k]));
+          }
+        }
+
         const nodes = mutation.addedNodes;
         for (let j = 0; j < nodes.length; j++) {
           const node = nodes[j];
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
           const el = node;
+
+          // 1. Kiểm tra nếu bản thân node là hàng chat theo data attribute
           if (el.matches && el.matches(TARGET_CHAT_ATTR)) {
             extractChatData(el);
-          } else if (el.closest) {
-            const chatRow = el.closest(TARGET_CHAT_ATTR);
-            if (chatRow) {
-              extractChatData(chatRow);
-            }
+            continue;
+          }
+
+          // 2. Kiểm tra nếu node là dòng chat dạng styled-components (như sc-egrBe)
+          if (el.matches && el.matches('div[class*="sc-"]')) {
+            extractChatData(el);
+            continue;
+          }
+
+          // 3. Nếu node là container chứa các tin nhắn bên trong
+          const children = el.querySelectorAll ? el.querySelectorAll(TARGET_CHAT_ATTR + ', div[class*="sc-"]') : [];
+          if (children.length > 0) {
+            children.forEach(extractChatData);
           }
         }
       }
@@ -190,14 +239,11 @@ async function startConnection(): Promise<void> {
       );
     }
 
-    // Tối ưu flags khởi chạy cho Windows
     browser = await chromium.launch({
       headless: true,
       args: [
-        // Tắt GPU và DirectWrite rendering trên Windows
         "--disable-gpu",
         "--disable-software-rasterizer",
-        // Tắt các background processes không cần thiết
         "--disable-background-networking",
         "--disable-background-timer-throttling",
         "--disable-backgrounding-occluded-windows",
@@ -209,20 +255,24 @@ async function startConnection(): Promise<void> {
         "--disable-ipc-flooding-protection",
         "--disable-renderer-backgrounding",
         "--disable-sync",
-        // Tắt âm thanh
         "--mute-audio",
       ],
     });
 
     context = await browser.newContext({
-      // Giảm độ phân giải viewport để Chromium tốn ít RAM/CPU dựng DOM
       viewport: { width: 800, height: 600 },
       deviceScaleFactor: 1,
     });
 
     page = await context.newPage();
 
-    // Chặn request hình ảnh, media và phông chữ nhằm loại bỏ nghẽn I/O trên Windows
+    page.on("console", (msg) => {
+      const text = msg.text();
+      if (text.startsWith("[DOM")) {
+        console.log(text);
+      }
+    });
+
     await page.route("**/*", (route) => {
       const type = route.request().resourceType();
       if (type === "image" || type === "media" || type === "font") {
@@ -231,12 +281,10 @@ async function startConnection(): Promise<void> {
       return route.continue();
     });
 
-    // Expose hàm nhận message từ DOM
     await page.exposeFunction("onLiveChatMessage", (msg: IncomingChatMessage) => {
       handleChatMessage(msg);
     });
 
-    // Tiêm observer trước khi load trang
     await page.addInitScript(browserObserverScript);
 
     page.on("close", () => {
@@ -251,7 +299,6 @@ async function startConnection(): Promise<void> {
       startConnection();
     });
 
-    // Dùng domcontentloaded thay vì load/networkidle để vào trạng thái lắng nghe ngay
     await page.goto(targetUrl, {
       waitUntil: "domcontentloaded",
       timeout: 30000,
